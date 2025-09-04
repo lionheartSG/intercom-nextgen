@@ -387,81 +387,9 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
   return (
     <div className="min-h-screen bg-black">
       <div className="h-screen flex flex-col">
-        <h2 className="text-white text-center py-4 text-lg font-medium">
-          Video Call
-        </h2>
-
-        {/* Channel Input */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-lg font-medium mb-3">Channel Settings</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={channelInput}
-              onChange={(e) => handleChannelChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (
-                  e.key === "Enter" &&
-                  !isJoined &&
-                  channelInput !== channel
-                ) {
-                  applyChannelChange();
-                }
-              }}
-              placeholder="Enter channel name"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isJoined}
-            />
-            <button
-              onClick={applyChannelChange}
-              disabled={isJoined || channelInput === channel}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {channelInput === channel ? "Current" : "Set Channel"}
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Current channel:{" "}
-            <span className="font-mono font-semibold">{channel}</span>
-          </p>
-        </div>
-
-        {/* Status */}
-        <div className="mb-4 text-center space-y-2">
-          <div className="inline-block px-3 py-1 rounded-full text-sm font-medium">
-            <span
-              className={`inline-block w-2 h-2 rounded-full mr-2 ${
-                connectionState === "CONNECTED"
-                  ? "bg-green-500"
-                  : connectionState === "CONNECTING"
-                  ? "bg-yellow-500"
-                  : "bg-red-500"
-              }`}
-            ></span>
-            {connectionState}
-          </div>
-
-          {/* Auto-join Status */}
-          {!isJoined && !isLoading && (
-            <div className="text-xs text-blue-600">
-              Auto-joining video channel...
-            </div>
-          )}
-
-          {/* Token Status */}
-          {currentToken && isJoined && (
-            <div className="text-xs text-gray-600">
-              Token expires:{" "}
-              {tokenExpiresAt
-                ? new Date(tokenExpiresAt * 1000).toLocaleTimeString()
-                : "Unknown"}
-            </div>
-          )}
-        </div>
-
         {/* Error Display */}
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="absolute top-4 left-4 right-4 z-50 p-4 bg-red-500/90 backdrop-blur-sm border border-red-400 text-red-100 rounded-xl">
             {error}
           </div>
         )}
@@ -482,23 +410,27 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
           </div>
         </div>
 
-        {/* Mobile Controls */}
-        <div className="flex justify-center space-x-8 pb-8">
+        {/* Control Buttons */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
           {!isJoined ? (
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
-              <p className="text-sm text-white">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-2 border-white border-t-transparent mb-4"></div>
+              <p className="text-lg text-white font-light">
                 {isLoading
                   ? "Joining video channel..."
                   : "Preparing video call..."}
               </p>
             </div>
           ) : (
-            <>
+            <div className="flex items-center space-x-6">
               {/* Mute Button */}
               <button
                 onClick={toggleMute}
-                className="w-12 h-12 bg-gray-600 bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all"
+                className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
+                  localAudioTrackRef.current?.enabled
+                    ? "bg-gray-700 hover:bg-gray-600"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
               >
                 {localAudioTrackRef.current?.enabled ? (
                   <svg
@@ -523,7 +455,11 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
               {/* Video Toggle Button */}
               <button
                 onClick={toggleVideo}
-                className="w-12 h-12 bg-gray-600 bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all"
+                className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
+                  localVideoTrackRef.current?.enabled
+                    ? "bg-gray-700 hover:bg-gray-600"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
               >
                 {localVideoTrackRef.current?.enabled ? (
                   <svg
@@ -539,11 +475,25 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.55-.18L19.73 21 21 19.73 3.27 2zM5 16V8h1.73l8 8H5z" />
+                    <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.55-.18L19.73 21 21 19.73l-9-9L4.27 3zM5 16V8h1.73l8 8H5z" />
                   </svg>
                 )}
               </button>
-            </>
+
+              {/* End Call Button */}
+              <button
+                onClick={leaveChannel}
+                className="w-16 h-16 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg"
+              >
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
 

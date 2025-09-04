@@ -460,198 +460,194 @@ export default function PhoneCallUI({
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Phone Call System</h1>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Settings"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-          </button>
-        </div>
+    <div className="min-h-screen flex">
+      {/* Left Half - Full Black Background */}
+      <div className="hidden lg:block lg:w-1/2 bg-black"></div>
 
-        {/* Connection Status */}
-        <div className="mb-4 text-center">
-          <div
-            className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-              isConnected
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800"
-            }`}
-          >
-            {isConnected ? "Connected" : "Disconnected"}
-          </div>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-
-        {/* Site Information Display */}
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-          {siteSettings && siteSettings.siteName && (
-            <div className="mb-2">
-              <p className="text-sm text-blue-800">
-                <strong>Site:</strong> {siteSettings.siteName}
-              </p>
+      {/* Right Half - Centered Content */}
+      <div className="w-full lg:w-1/2 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-8">
+        <div className="w-full max-w-lg">
+          {/* Logo */}
+          <div className="text-center mb-16">
+            <div className="w-24 h-24 mx-auto mb-6 bg-white/10 backdrop-blur-sm rounded-3xl flex items-center justify-center border border-white/20">
+              <span className="text-white font-light text-4xl tracking-wider">
+                D
+              </span>
             </div>
-          )}
-          <p className="text-sm text-blue-800">
-            <strong>Your ID:</strong>{" "}
-            <span className="font-mono">{userId}</span>
-          </p>
-          {targetUserIds && targetUserIds.length > 0 && (
-            <div className="mt-2">
-              <p className="text-sm text-blue-800 mb-1">
-                <strong>Available Targets:</strong>
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {targetUserIds.map((targetId, index) => (
-                  <span
-                    key={index}
-                    className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
-                  >
-                    {targetId}
-                  </span>
-                ))}
+            <h1 className="text-4xl font-light text-white mb-3 tracking-wide">
+              Dragnet Intercom
+            </h1>
+            <p className="text-blue-200 text-lg font-light">
+              Secure Communication
+            </p>
+          </div>
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl">
+              <div className="flex items-center">
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {error}
               </div>
             </div>
           )}
-        </div>
 
-        {/* Channel Status */}
-        <div className="mb-4 p-3 bg-green-50 rounded-lg">
-          <p className="text-sm text-green-800">
-            <strong>Channel:</strong>{" "}
-            <span className="font-mono">{channel}</span>
-            <span className="ml-2 text-xs bg-green-200 px-2 py-1 rounded">
-              Auto-joined
-            </span>
-          </p>
-        </div>
-
-        {/* Call State Display */}
-        {callState !== "IDLE" && (
-          <div className="mb-4 p-4 bg-yellow-50 rounded-lg text-center">
-            <p className="text-lg font-medium text-yellow-800">
-              {callState === "CALLING" && "Calling..."}
-              {callState === "RINGING" && "Incoming Call!"}
-              {callState === "CONNECTED" && "Call Connected"}
-              {callState === "ENDED" && "Call Ended"}
-            </p>
-          </div>
-        )}
-
-        {/* Incoming Call UI */}
-        {callState === "RINGING" && currentCall && (
-          <div className="mb-4 p-4 bg-green-50 rounded-lg text-center">
-            <p className="text-lg font-medium text-green-800 mb-2">
-              Incoming call from: {currentCall.from}
-            </p>
-            <p className="text-sm text-green-600 mb-4">
-              Channel: {currentCall.channel}
-            </p>
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={handleAcceptCall}
-                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium"
-              >
-                Accept
-              </button>
-              <button
-                onClick={handleDeclineCall}
-                className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium"
-              >
-                Decline
-              </button>
+          {/* Call State Display */}
+          {callState !== "IDLE" && (
+            <div className="mb-8 p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl text-center">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse mr-3"></div>
+                <p className="text-lg font-light text-blue-100 tracking-wide">
+                  {callState === "CALLING" && "Calling..."}
+                  {callState === "RINGING" && "Incoming Call!"}
+                  {callState === "CONNECTED" && "Call Connected"}
+                  {callState === "ENDED" && "Call Ended"}
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Outgoing Call UI */}
-        {callState === "CALLING" && (
-          <div className="mb-4 p-4 bg-blue-50 rounded-lg text-center">
-            <p className="text-lg font-medium text-blue-800 mb-4">
-              Calling {currentTargetUserId}...
-            </p>
-            <button
-              onClick={handleEndCall}
-              className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-
-        {/* Make Call UI */}
-        {/* Call Controls */}
-        {callState === "IDLE" && targetUserIds && targetUserIds.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 text-center">
-              Select Tablet to Call
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {targetUserIds.map((targetId, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleInitiateCall(targetId)}
-                  disabled={!channel || !isConnected}
-                  className="px-6 py-4 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-center"
+          {/* Incoming Call UI */}
+          {callState === "RINGING" && currentCall && (
+            <div className="mb-8 p-8 bg-white/5 backdrop-blur-sm border border-white/20 rounded-3xl text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-green-500/20 rounded-full flex items-center justify-center border border-green-500/30">
+                <svg
+                  className="w-10 h-10 text-green-400"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  📞 Call {targetId}
+                  <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                </svg>
+              </div>
+              <p className="text-2xl font-light text-white mb-3 tracking-wide">
+                Incoming call from: {currentCall.from}
+              </p>
+              <p className="text-blue-200 mb-8 font-light">
+                Channel: {currentCall.channel}
+              </p>
+              <div className="flex gap-6 justify-center">
+                <button
+                  onClick={handleAcceptCall}
+                  className="px-10 py-4 bg-green-500/20 backdrop-blur-sm border border-green-500/30 text-green-300 rounded-2xl hover:bg-green-500/30 hover:border-green-500/50 font-light text-lg transition-all duration-300"
+                >
+                  Accept
                 </button>
-              ))}
+                <button
+                  onClick={handleDeclineCall}
+                  className="px-10 py-4 bg-red-500/20 backdrop-blur-sm border border-red-500/30 text-red-300 rounded-2xl hover:bg-red-500/30 hover:border-red-500/50 font-light text-lg transition-all duration-300"
+                >
+                  Decline
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {callState === "IDLE" &&
-          (!targetUserIds || targetUserIds.length === 0) && (
-            <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">No target tablets configured</p>
+          {/* Outgoing Call UI */}
+          {callState === "CALLING" && (
+            <div className="mb-8 p-8 bg-white/5 backdrop-blur-sm border border-white/20 rounded-3xl text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-blue-500/20 rounded-full flex items-center justify-center animate-pulse border border-blue-500/30">
+                <svg
+                  className="w-10 h-10 text-blue-400"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                </svg>
+              </div>
+              <p className="text-2xl font-light text-white mb-8 tracking-wide">
+                Calling {currentTargetUserId}...
+              </p>
               <button
-                onClick={() => setShowSettings(true)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                onClick={handleEndCall}
+                className="px-10 py-4 bg-red-500/20 backdrop-blur-sm border border-red-500/30 text-red-300 rounded-2xl hover:bg-red-500/30 hover:border-red-500/50 font-light text-lg transition-all duration-300"
               >
-                Configure Settings
+                Cancel
               </button>
             </div>
           )}
 
-        {/* Instructions */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2">How to use:</h3>
-          <ol className="text-sm text-gray-700 space-y-1">
-            <li>1. Configure your site settings with target tablets</li>
-            <li>2. Each tablet will show buttons for all configured targets</li>
-            <li>3. Click any tablet button to initiate a call</li>
-            <li>4. The target tablet will receive the call notification</li>
-            <li>5. Use the settings button to add/remove target tablets</li>
-          </ol>
+          {/* Call Controls */}
+          {callState === "IDLE" &&
+            targetUserIds &&
+            targetUserIds.length > 0 && (
+              <div className="space-y-8">
+                <h3 className="text-xl font-light text-blue-100 text-center mb-12 tracking-wide">
+                  SELECT TABLET TO CALL
+                </h3>
+                <div className="space-y-6">
+                  {targetUserIds.map((targetId, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleInitiateCall(targetId)}
+                      disabled={!channel || !isConnected}
+                      className="group w-full px-8 py-5 bg-white/5 backdrop-blur-sm border border-white/10 text-white rounded-2xl hover:bg-white/10 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed font-medium text-lg text-center transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10 disabled:hover:bg-white/5"
+                    >
+                      <div className="flex items-center justify-center space-x-4">
+                        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
+                          <svg
+                            className="w-5 h-5"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                          </svg>
+                        </div>
+                        <span className="tracking-wide">Call {targetId}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Settings Button */}
+                <div className="mt-16 text-center">
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="px-8 py-3 bg-white/5 backdrop-blur-sm border border-white/10 text-blue-200 rounded-xl hover:bg-white/10 hover:border-white/20 font-light transition-all duration-300"
+                  >
+                    Settings
+                  </button>
+                </div>
+              </div>
+            )}
+
+          {callState === "IDLE" &&
+            (!targetUserIds || targetUserIds.length === 0) && (
+              <div className="text-center py-16">
+                <div className="w-20 h-20 mx-auto mb-8 bg-white/5 backdrop-blur-sm rounded-3xl flex items-center justify-center border border-white/10">
+                  <svg
+                    className="w-10 h-10 text-blue-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+                    />
+                  </svg>
+                </div>
+                <p className="text-blue-100 mb-12 text-xl font-light tracking-wide">
+                  No target tablets configured
+                </p>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-2xl hover:bg-white/20 hover:border-white/30 font-light text-lg transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10"
+                >
+                  Configure Settings
+                </button>
+              </div>
+            )}
         </div>
       </div>
     </div>
