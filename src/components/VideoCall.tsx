@@ -5,11 +5,10 @@ import { generateAgoraToken } from "../lib/agora-token";
 
 interface VideoCallProps {
   appId: string;
-  channel: string;
   token?: string;
 }
 
-export default function VideoCall({ appId, channel, token }: VideoCallProps) {
+export default function VideoCall({ appId, token }: VideoCallProps) {
   const [isJoined, setIsJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +19,8 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
   const [currentToken, setCurrentToken] = useState<string | null>(null);
   const [tokenExpiresAt, setTokenExpiresAt] = useState<number | null>(null);
   const [currentUid, setCurrentUid] = useState<number>(0);
+  const [channel, setChannel] = useState<string>("");
+  const [channelInput, setChannelInput] = useState<string>("");
 
   const clientRef = useRef<any>(null);
   const localVideoTrackRef = useRef<any>(null);
@@ -31,6 +32,18 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
   // Check if we're on the client side and load Agora SDK
   useEffect(() => {
     setIsClient(true);
+
+    // Load channel from localStorage
+    const savedChannel = localStorage.getItem("agora-channel");
+    if (savedChannel) {
+      setChannel(savedChannel);
+      setChannelInput(savedChannel);
+    } else {
+      // Default channel if none saved
+      const defaultChannel = "test-channel";
+      setChannel(defaultChannel);
+      setChannelInput(defaultChannel);
+    }
 
     // Dynamically import Agora SDK
     const loadAgora = async () => {
@@ -162,6 +175,48 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
     if (!tokenExpiresAt) return true;
     const now = Math.floor(Date.now() / 1000);
     return tokenExpiresAt - now < 300; // Consider expired if less than 5 minutes left
+  };
+
+  // Function to handle channel change
+  const handleChannelChange = (newChannel: string) => {
+    setChannelInput(newChannel);
+  };
+
+  // Function to set channel and save to localStorage
+  const setChannelAndSave = (newChannel: string) => {
+    // Validate channel name
+    if (!newChannel.trim()) {
+      setError("Channel name cannot be empty");
+      return false;
+    }
+
+    // Agora channel name validation (alphanumeric, hyphens, underscores only)
+    const channelRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!channelRegex.test(newChannel)) {
+      setError(
+        "Channel name can only contain letters, numbers, hyphens, and underscores"
+      );
+      return false;
+    }
+
+    if (newChannel.length > 64) {
+      setError("Channel name must be 64 characters or less");
+      return false;
+    }
+
+    setChannel(newChannel);
+    localStorage.setItem("agora-channel", newChannel);
+    setError(null);
+    return true;
+  };
+
+  // Function to apply channel change
+  const applyChannelChange = () => {
+    if (setChannelAndSave(channelInput)) {
+      // Clear current token since channel changed
+      setCurrentToken(null);
+      setTokenExpiresAt(null);
+    }
   };
 
   const joinChannel = async () => {
@@ -315,6 +370,41 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-2xl font-bold mb-4 text-center">Video Call</h2>
+
+        {/* Channel Input */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-medium mb-3">Channel Settings</h3>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={channelInput}
+              onChange={(e) => handleChannelChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  !isJoined &&
+                  channelInput !== channel
+                ) {
+                  applyChannelChange();
+                }
+              }}
+              placeholder="Enter channel name"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isJoined}
+            />
+            <button
+              onClick={applyChannelChange}
+              disabled={isJoined || channelInput === channel}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {channelInput === channel ? "Current" : "Set Channel"}
+            </button>
+          </div>
+          <p className="text-sm text-gray-600 mt-2">
+            Current channel:{" "}
+            <span className="font-mono font-semibold">{channel}</span>
+          </p>
+        </div>
 
         {/* Status */}
         <div className="mb-4 text-center space-y-2">
