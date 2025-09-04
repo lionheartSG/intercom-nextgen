@@ -282,7 +282,7 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
             <li>2. Open this page in two different browser tabs or devices</li>
             <li>3. Click Join Channel on both devices</li>
             <li>
-              4. You should see each other's video and hear each others audio
+              4. You should see each others video and hear each others audio
             </li>
           </ol>
         </div>
