@@ -5,7 +5,7 @@ import { generateAgoraToken } from "../lib/agora-token";
 
 interface VideoCallProps {
   appId: string;
-  token?: string;
+  token?: string; // Optional - will generate dynamically if not provided
 }
 
 export default function VideoCall({ appId, token }: VideoCallProps) {
@@ -16,6 +16,7 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
     useState<string>("DISCONNECTED");
   const [isClient, setIsClient] = useState(false);
   const [agoraLoaded, setAgoraLoaded] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
   const [currentToken, setCurrentToken] = useState<string | null>(null);
   const [tokenExpiresAt, setTokenExpiresAt] = useState<number | null>(null);
   const [currentUid, setCurrentUid] = useState<number>(0);
@@ -40,7 +41,7 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
       setChannelInput(savedChannel);
     } else {
       // Default channel if none saved
-      const defaultChannel = "test-channel";
+      const defaultChannel = "dragnet-channel";
       setChannel(defaultChannel);
       setChannelInput(defaultChannel);
     }
@@ -51,7 +52,6 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
         const AgoraRTC = await import("agora-rtc-sdk-ng");
         agoraRTCRef.current = AgoraRTC.default;
         setAgoraLoaded(true);
-        console.log("Agora SDK loaded successfully");
       } catch (err) {
         console.error("Failed to load Agora SDK:", err);
         setError("Failed to load video calling SDK");
@@ -61,13 +61,29 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
     loadAgora();
   }, []);
 
+  // Auto-join channel when component is ready
+  useEffect(() => {
+    if (
+      isClient &&
+      agoraLoaded &&
+      clientReady &&
+      !isJoined &&
+      channel &&
+      appId
+    ) {
+      joinChannel().catch((err) => {
+        console.error("Auto-join failed:", err);
+        setError("Failed to auto-join video channel");
+      });
+    }
+  }, [isClient, agoraLoaded, clientReady, isJoined, channel, appId]);
+
   // Token refresh mechanism
   useEffect(() => {
     if (!isJoined || !tokenExpiresAt) return;
 
     const checkTokenExpiry = () => {
       if (isTokenExpired()) {
-        console.log("Token is about to expire, refreshing...");
         generateToken().catch(console.error);
       }
     };
@@ -77,6 +93,27 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
 
     return () => clearInterval(interval);
   }, [isJoined, tokenExpiresAt]);
+
+  // Cleanup effect - stop camera when component unmounts
+  useEffect(() => {
+    return () => {
+      // Stop and close all tracks when component unmounts
+      if (localVideoTrackRef.current) {
+        localVideoTrackRef.current.stop();
+        localVideoTrackRef.current.close();
+        localVideoTrackRef.current = null;
+      }
+      if (localAudioTrackRef.current) {
+        localAudioTrackRef.current.stop();
+        localAudioTrackRef.current.close();
+        localAudioTrackRef.current = null;
+      }
+      // Leave channel if still joined
+      if (clientRef.current && isJoined) {
+        clientRef.current.leave().catch(console.error);
+      }
+    };
+  }, []);
 
   // Initialize Agora client
   useEffect(() => {
@@ -88,12 +125,12 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
     };
 
     clientRef.current = agoraRTCRef.current.createClient(config);
+    setClientReady(true);
 
     // Listen to connection state changes
     clientRef.current.on(
       "connection-state-change",
       (curState: string, revState: string) => {
-        console.log("Connection state changed:", revState, "->", curState);
         setConnectionState(curState);
       }
     );
@@ -102,8 +139,6 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
     clientRef.current.on(
       "user-published",
       async (user: any, mediaType: "audio" | "video") => {
-        console.log("User published:", user, mediaType);
-
         if (clientRef.current) {
           await clientRef.current.subscribe(user, mediaType);
 
@@ -128,7 +163,6 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
     clientRef.current.on(
       "user-unpublished",
       (user: any, mediaType: "audio" | "video") => {
-        console.log("User unpublished:", user, mediaType);
         if (mediaType === "video" && remoteVideoElementRef.current) {
           remoteVideoElementRef.current.innerHTML = "";
         }
@@ -139,6 +173,7 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
       if (clientRef.current) {
         clientRef.current.removeAllListeners();
       }
+      setClientReady(false);
     };
   }, [isClient, agoraLoaded]);
 
@@ -156,12 +191,6 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
       setCurrentToken(tokenResponse.token);
       setTokenExpiresAt(tokenResponse.expiresAt);
 
-      console.log(
-        "Token generated successfully for UID:",
-        tokenUid,
-        "expires at:",
-        new Date(tokenResponse.expiresAt * 1000)
-      );
       return tokenResponse.token;
     } catch (err) {
       console.error("Error generating token:", err);
@@ -237,19 +266,8 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
       let joinToken = token || currentToken;
 
       if (!joinToken || isTokenExpired()) {
-        console.log("Generating new token for UID:", sessionUid);
         joinToken = await generateToken(sessionUid);
       }
-
-      console.log("Joining channel with:", {
-        appId,
-        channel,
-        uid: sessionUid,
-        hasToken: !!joinToken,
-        tokenExpiresAt: tokenExpiresAt
-          ? new Date(tokenExpiresAt * 1000).toISOString()
-          : "N/A",
-      });
 
       // Join the channel with the same UID used for token generation
       await clientRef.current.join(appId, channel, joinToken, sessionUid);
@@ -367,9 +385,11 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-bold mb-4 text-center">Video Call</h2>
+    <div className="min-h-screen bg-black">
+      <div className="h-screen flex flex-col">
+        <h2 className="text-white text-center py-4 text-lg font-medium">
+          Video Call
+        </h2>
 
         {/* Channel Input */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
@@ -421,8 +441,15 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
             {connectionState}
           </div>
 
+          {/* Auto-join Status */}
+          {!isJoined && !isLoading && (
+            <div className="text-xs text-blue-600">
+              Auto-joining video channel...
+            </div>
+          )}
+
           {/* Token Status */}
-          {currentToken && (
+          {currentToken && isJoined && (
             <div className="text-xs text-gray-600">
               Token expires:{" "}
               {tokenExpiresAt
@@ -439,59 +466,82 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
           </div>
         )}
 
-        {/* Video Container */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Local Video */}
-          <div className="relative">
-            <h3 className="text-sm font-medium mb-2">You</h3>
+        {/* Video Container - Mobile Style */}
+        <div className="flex-1 relative">
+          {/* Remote Video - Full Screen */}
+          <div className="absolute inset-0">
             <div
-              ref={localVideoElementRef}
-              className="w-full h-48 bg-gray-200 rounded-lg border-2 border-gray-300"
+              ref={remoteVideoElementRef}
+              className="w-full h-full bg-gray-900"
             ></div>
           </div>
 
-          {/* Remote Video */}
-          <div className="relative">
-            <h3 className="text-sm font-medium mb-2">Remote User</h3>
-            <div
-              ref={remoteVideoElementRef}
-              className="w-full h-48 bg-gray-200 rounded-lg border-2 border-gray-300"
-            ></div>
+          {/* Local Video - Picture in Picture */}
+          <div className="absolute top-4 right-4 w-32 h-24 bg-gray-800 rounded-lg overflow-hidden border-2 border-white">
+            <div ref={localVideoElementRef} className="w-full h-full"></div>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex justify-center space-x-4">
+        {/* Mobile Controls */}
+        <div className="flex justify-center space-x-8 pb-8">
           {!isJoined ? (
-            <button
-              onClick={joinChannel}
-              disabled={isLoading}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Joining..." : "Join Channel"}
-            </button>
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
+              <p className="text-sm text-white">
+                {isLoading
+                  ? "Joining video channel..."
+                  : "Preparing video call..."}
+              </p>
+            </div>
           ) : (
             <>
+              {/* Mute Button */}
               <button
                 onClick={toggleMute}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                className="w-12 h-12 bg-gray-600 bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all"
               >
-                {localAudioTrackRef.current?.enabled ? "Mute" : "Unmute"}
+                {localAudioTrackRef.current?.enabled ? (
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                  </svg>
+                )}
               </button>
+
+              {/* Video Toggle Button */}
               <button
                 onClick={toggleVideo}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                className="w-12 h-12 bg-gray-600 bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all"
               >
-                {localVideoTrackRef.current?.enabled
-                  ? "Stop Video"
-                  : "Start Video"}
-              </button>
-              <button
-                onClick={leaveChannel}
-                disabled={isLoading}
-                className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? "Leaving..." : "Leave Channel"}
+                {localVideoTrackRef.current?.enabled ? (
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.55-.18L19.73 21 21 19.73 3.27 2zM5 16V8h1.73l8 8H5z" />
+                  </svg>
+                )}
               </button>
             </>
           )}

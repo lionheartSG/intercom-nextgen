@@ -1,14 +1,9 @@
 "use client";
 
-import VideoCall from "../components/VideoCall";
+import PhoneCallUI from "../components/PhoneCallUI";
 
 export default function Home() {
   const appId = process.env.NEXT_PUBLIC_AGORA_APP_ID || "";
-  const token = process.env.NEXT_PUBLIC_AGORA_TOKEN || undefined;
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <VideoCall appId={appId} token={token} />
-    </div>
-  );
+  return <PhoneCallUI appId={appId} rtcAppId={appId} />;
 }

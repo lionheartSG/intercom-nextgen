@@ -1,6 +1,6 @@
 "use server";
 
-import { RtcTokenBuilder, RtcRole } from "agora-token";
+import { RtcTokenBuilder, RtcRole, RtmTokenBuilder } from "agora-token";
 
 export interface TokenRequest {
   channel: string;
@@ -21,16 +21,6 @@ export async function generateAgoraToken({
   try {
     const appId = process.env.AGORA_APP_ID;
     const appCertificate = process.env.AGORA_APP_CERTIFICATE;
-
-    console.log("Token generation debug:", {
-      hasAppId: !!appId,
-      hasCertificate: !!appCertificate,
-      appIdLength: appId?.length,
-      certificateLength: appCertificate?.length,
-      channel,
-      uid,
-      expirationTimeInSeconds,
-    });
 
     if (!appId || !appCertificate) {
       throw new Error(
@@ -53,12 +43,6 @@ export async function generateAgoraToken({
     );
 
     const expiresAt = Math.floor(Date.now() / 1000) + expirationTimeInSeconds;
-
-    console.log("Generated token:", {
-      tokenLength: token.length,
-      tokenPreview: token.substring(0, 20) + "...",
-      expiresAt: new Date(expiresAt * 1000).toISOString(),
-    });
 
     return {
       token,
@@ -116,19 +100,54 @@ export async function generateAgoraTokenWithStringUid({
   }
 }
 
+// RTM Token generation for Real-Time Messaging
+export async function generateRtmToken({
+  uid,
+  expirationTimeInSeconds = 3600, // 1 hour default
+}: {
+  uid: string;
+  expirationTimeInSeconds?: number;
+}): Promise<TokenResponse> {
+  try {
+    const appId = process.env.AGORA_APP_ID;
+    const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+
+    if (!appId || !appCertificate) {
+      throw new Error(
+        "Missing Agora App ID or App Certificate in environment variables"
+      );
+    }
+
+    // Generate RTM token
+    const currentTime = Math.floor(Date.now() / 1000);
+    const privilegeExpiredTs = currentTime + expirationTimeInSeconds;
+
+    const token = RtmTokenBuilder.buildToken(
+      appId,
+      appCertificate,
+      uid,
+      privilegeExpiredTs
+    );
+
+    const expiresAt = Math.floor(Date.now() / 1000) + expirationTimeInSeconds;
+
+    return {
+      token,
+      expiresAt,
+    };
+  } catch (error) {
+    console.error("Error generating RTM token:", error);
+    throw new Error("Failed to generate RTM token");
+  }
+}
+
 // Test function to verify token generation
 export async function testTokenGeneration(): Promise<boolean> {
   try {
     const result = await generateAgoraToken({
-      channel: "test-channel",
+      channel: "dragnet-channel",
       uid: 12345,
       expirationTimeInSeconds: 3600,
-    });
-
-    console.log("Token generation test successful:", {
-      hasToken: !!result.token,
-      tokenLength: result.token.length,
-      expiresAt: new Date(result.expiresAt * 1000).toISOString(),
     });
 
     return true;

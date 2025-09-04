@@ -9,7 +9,7 @@ Add the following to your `.env.local` file:
 ```bash
 # Client-side (public)
 NEXT_PUBLIC_AGORA_APP_ID=your_app_id_here
-NEXT_PUBLIC_AGORA_CHANNEL=test-channel
+NEXT_PUBLIC_AGORA_CHANNEL=dragnet-channel
 
 # Server-side (private - DO NOT expose to client)
 AGORA_APP_ID=your_app_id_here

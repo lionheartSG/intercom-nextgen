@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "agora-rtc-sdk-ng": "^4.24.0",
+    "agora-rtm-react": "^1.1.2",
     "agora-token": "^2.0.5",
     "next": "15.5.2",
     "react": "19.1.0",

@@ -39,7 +39,7 @@ A simple video calling application built with Next.js and Agora SDK that allows 
 ## Environment Variables
 
 - `NEXT_PUBLIC_AGORA_APP_ID`: Your Agora App ID
-- `NEXT_PUBLIC_AGORA_CHANNEL`: Channel name (default: "test-channel")
+- `NEXT_PUBLIC_AGORA_CHANNEL`: Channel name (default: "dragnet-channel")
 
 ## Troubleshooting
 
