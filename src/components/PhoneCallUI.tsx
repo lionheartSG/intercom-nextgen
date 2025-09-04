@@ -7,7 +7,7 @@ import { generateRtmToken } from "../lib/agora-token";
 
 interface SiteSettings {
   channel: string;
-  targetUserId: string;
+  targetUserIds: string[];
   siteName: string;
 }
 
@@ -42,7 +42,8 @@ export default function PhoneCallUI({
   const [currentCall, setCurrentCall] = useState<CallSignal | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string>("");
-  const [targetUserId, setTargetUserId] = useState<string>("");
+  const [targetUserIds, setTargetUserIds] = useState<string[]>([]);
+  const [currentTargetUserId, setCurrentTargetUserId] = useState<string>("");
   const [channel, setChannel] = useState<string>("dragnet-channel");
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -70,7 +71,7 @@ export default function PhoneCallUI({
           const parsed = JSON.parse(savedSettings);
           setSiteSettings(parsed);
           setUserId(parsed.siteName); // Use site name as user ID
-          setTargetUserId(parsed.targetUserId);
+          setTargetUserIds(parsed.targetUserIds || []);
           setChannel(parsed.channel);
         } catch (error) {
           console.error("Failed to parse saved settings:", error);
@@ -88,7 +89,7 @@ export default function PhoneCallUI({
   const handleSettingsSave = (settings: SiteSettings) => {
     setSiteSettings(settings);
     setUserId(settings.siteName); // Use site name as user ID
-    setTargetUserId(settings.targetUserId);
+    setTargetUserIds(settings.targetUserIds);
     setChannel(settings.channel);
     setShowSettings(false);
   };
@@ -143,6 +144,7 @@ export default function PhoneCallUI({
           const token = await generateRtmTokenForUser(userId);
 
           const client = clientRef.current();
+          if (!client) return;
           const actualClient = client;
 
           // Set up client event listeners
@@ -201,8 +203,10 @@ export default function PhoneCallUI({
       return () => {
         if (clientRef.current) {
           const client = clientRef.current();
-          client.off("ConnectionStateChanged");
-          client.off("MessageFromPeer");
+          if (client) {
+            client.off("ConnectionStateChanged");
+            client.off("MessageFromPeer");
+          }
         }
       };
     }
@@ -254,6 +258,10 @@ export default function PhoneCallUI({
     try {
       // Get the actual client instance
       const client = clientRef.current();
+      if (!client) {
+        console.error("RTM client not available");
+        return;
+      }
       const message = client.createMessage({
         text: JSON.stringify(signal),
         messageType: "TEXT",
@@ -273,7 +281,7 @@ export default function PhoneCallUI({
     return callId;
   };
 
-  const handleInitiateCall = async () => {
+  const handleInitiateCall = async (targetUserId: string) => {
     if (!targetUserId || !channel) {
       setError("Please enter target user ID and channel");
       return;
@@ -281,6 +289,7 @@ export default function PhoneCallUI({
 
     try {
       setError(null);
+      setCurrentTargetUserId(targetUserId);
       generateCallId();
       await sendCallSignal(targetUserId, channel, "INCOMING_CALL");
       setCallState("CALLING");
@@ -329,6 +338,7 @@ export default function PhoneCallUI({
   const handleEndCall = async () => {
     try {
       setError(null);
+      setCurrentTargetUserId("");
 
       // Send end call signal
       if (currentCallIdRef.current && channelRef.current) {
@@ -342,11 +352,13 @@ export default function PhoneCallUI({
         };
 
         const client = clientRef.current();
-        const message = client.createMessage({
-          text: JSON.stringify(endSignal),
-          messageType: "TEXT",
-        });
-        await channelRef.current.sendMessage(message);
+        if (client) {
+          const message = client.createMessage({
+            text: JSON.stringify(endSignal),
+            messageType: "TEXT",
+          });
+          await channelRef.current.sendMessage(message);
+        }
       }
 
       currentCallIdRef.current = null;
@@ -366,6 +378,10 @@ export default function PhoneCallUI({
         const { createChannel } = await import("agora-rtm-react");
         const useChannel = createChannel(channelName);
         const client = clientRef.current();
+        if (!client) {
+          console.error("RTM client not available for channel join");
+          return;
+        }
         const rtmChannel = useChannel(client);
 
         // Set up channel event listeners
@@ -508,10 +524,23 @@ export default function PhoneCallUI({
             <strong>Your ID:</strong>{" "}
             <span className="font-mono">{userId}</span>
           </p>
-          <p className="text-sm text-blue-800">
-            <strong>Target ID:</strong>{" "}
-            <span className="font-mono">{targetUserId}</span>
-          </p>
+          {targetUserIds && targetUserIds.length > 0 && (
+            <div className="mt-2">
+              <p className="text-sm text-blue-800 mb-1">
+                <strong>Available Targets:</strong>
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {targetUserIds.map((targetId, index) => (
+                  <span
+                    key={index}
+                    className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
+                  >
+                    {targetId}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Channel Status */}
@@ -567,7 +596,7 @@ export default function PhoneCallUI({
         {callState === "CALLING" && (
           <div className="mb-4 p-4 bg-blue-50 rounded-lg text-center">
             <p className="text-lg font-medium text-blue-800 mb-4">
-              Calling {targetUserId}...
+              Calling {currentTargetUserId}...
             </p>
             <button
               onClick={handleEndCall}
@@ -579,42 +608,49 @@ export default function PhoneCallUI({
         )}
 
         {/* Make Call UI */}
-        {callState === "IDLE" && (
+        {/* Call Controls */}
+        {callState === "IDLE" && targetUserIds && targetUserIds.length > 0 && (
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Target User ID
-              </label>
-              <input
-                type="text"
-                value={targetUserId}
-                onChange={(e) => setTargetUserId(e.target.value)}
-                placeholder="Enter user ID to call"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <h3 className="text-lg font-medium text-gray-900 text-center">
+              Select Tablet to Call
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {targetUserIds.map((targetId, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleInitiateCall(targetId)}
+                  disabled={!channel || !isConnected}
+                  className="px-6 py-4 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-center"
+                >
+                  📞 Call {targetId}
+                </button>
+              ))}
             </div>
-
-            <button
-              onClick={handleInitiateCall}
-              disabled={!targetUserId || !channel || !isConnected}
-              className="w-full px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              Make Call
-            </button>
           </div>
         )}
 
+        {callState === "IDLE" &&
+          (!targetUserIds || targetUserIds.length === 0) && (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">No target tablets configured</p>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                Configure Settings
+              </button>
+            </div>
+          )}
+
         {/* Instructions */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2">How to test:</h3>
+          <h3 className="font-medium text-gray-900 mb-2">How to use:</h3>
           <ol className="text-sm text-gray-700 space-y-1">
-            <li>1. Open this page in two browser tabs</li>
-            <li>2. Note the User ID in each tab</li>
-            <li>3. Both tabs will automatically join the same channel</li>
-            <li>
-              4. In one tab, enter the other tab's User ID and click "Make Call"
-            </li>
-            <li>5. In the other tab, click "Accept" when the call comes in</li>
+            <li>1. Configure your site settings with target tablets</li>
+            <li>2. Each tablet will show buttons for all configured targets</li>
+            <li>3. Click any tablet button to initiate a call</li>
+            <li>4. The target tablet will receive the call notification</li>
+            <li>5. Use the settings button to add/remove target tablets</li>
           </ol>
         </div>
       </div>

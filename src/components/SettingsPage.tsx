@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 
 interface SiteSettings {
   channel: string;
-  targetUserId: string;
+  targetUserIds: string[];
   siteName: string;
 }
 
@@ -21,9 +21,14 @@ export default function SettingsPage({
 }: SettingsPageProps) {
   const [settings, setSettings] = useState<SiteSettings>({
     channel: "",
-    targetUserId: "",
+    targetUserIds: [],
     siteName: "",
   });
+
+  // Generate random 8-digit code
+  const generateRandomSiteCode = () => {
+    return Math.floor(10000000 + Math.random() * 90000000).toString();
+  };
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -31,12 +36,32 @@ export default function SettingsPage({
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
-        setSettings(parsed);
+        // Ensure targetUserIds is always an array
+        setSettings({
+          ...parsed,
+          targetUserIds: parsed.targetUserIds || [],
+        });
       } catch (error) {
         console.error("Failed to parse saved settings:", error);
+        // If parsing fails, generate new settings with random code
+        setSettings({
+          channel: "",
+          targetUserIds: [],
+          siteName: generateRandomSiteCode(),
+        });
       }
     } else if (currentSettings) {
-      setSettings(currentSettings);
+      setSettings({
+        ...currentSettings,
+        targetUserIds: currentSettings.targetUserIds || [],
+      });
+    } else {
+      // No saved settings and no current settings, generate new with random code
+      setSettings({
+        channel: "",
+        targetUserIds: [],
+        siteName: generateRandomSiteCode(),
+      });
     }
   }, [currentSettings]);
 
@@ -47,9 +72,37 @@ export default function SettingsPage({
     }));
   };
 
+  const addTargetUserId = () => {
+    setSettings((prev) => ({
+      ...prev,
+      targetUserIds: [...prev.targetUserIds, ""],
+    }));
+  };
+
+  const updateTargetUserId = (index: number, value: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      targetUserIds: prev.targetUserIds.map((id, i) =>
+        i === index ? value : id
+      ),
+    }));
+  };
+
+  const removeTargetUserId = (index: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      targetUserIds: prev.targetUserIds.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSave = () => {
     // Validate required fields
-    if (!settings.channel || !settings.siteName || !settings.targetUserId) {
+    if (
+      !settings.channel ||
+      !settings.siteName ||
+      !settings.targetUserIds ||
+      settings.targetUserIds.length === 0
+    ) {
       alert("Please fill in all required fields");
       return;
     }
@@ -101,9 +154,13 @@ export default function SettingsPage({
                   onChange={(e) =>
                     handleInputChange("siteName", e.target.value)
                   }
-                  placeholder="e.g., BCA-FCC, BCA-Lobby, Main Entrance"
+                  placeholder="e.g., BCA-FCC, BCA-Lobby, Main Entrance (auto-generated if empty)"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  This will be used as your tablet ID. Change to your preferred
+                  site name.
+                </p>
               </div>
             </div>
           </div>
@@ -139,22 +196,51 @@ export default function SettingsPage({
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Target Tablet ID <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Target Tablet IDs <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={settings.targetUserId}
-                  onChange={(e) =>
-                    handleInputChange("targetUserId", e.target.value)
-                  }
-                  placeholder="e.g., BCA-Lobby, BCA-FCC"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                {(settings.targetUserIds || []).map((targetId, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={targetId}
+                      onChange={(e) =>
+                        updateTargetUserId(index, e.target.value)
+                      }
+                      placeholder="e.g., BCA-Lobby, BCA-FCC, BCA-Office"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <button
+                      onClick={() => removeTargetUserId(index)}
+                      className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                      title="Remove"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={addTargetUserId}
+                  className="w-full px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm"
+                >
+                  + Add Target Tablet
+                </button>
               </div>
               <p className="text-xs text-gray-500">
-                This tablet will use the site name as its ID. Enter the ID of
-                the tablet you want to call.
+                This tablet will use the site name as its ID. Add all the
+                tablets you want to be able to call.
               </p>
             </div>
           </div>
