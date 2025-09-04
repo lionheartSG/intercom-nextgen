@@ -6,9 +6,7 @@ import SettingsPage from "./SettingsPage";
 import { generateRtmToken } from "../lib/agora-token";
 
 interface SiteSettings {
-  siteId: string;
   channel: string;
-  userId: string;
   targetUserId: string;
   siteName: string;
 }
@@ -71,7 +69,7 @@ export default function PhoneCallUI({
         try {
           const parsed = JSON.parse(savedSettings);
           setSiteSettings(parsed);
-          setUserId(parsed.userId);
+          setUserId(parsed.siteName); // Use site name as user ID
           setTargetUserId(parsed.targetUserId);
           setChannel(parsed.channel);
         } catch (error) {
@@ -89,7 +87,7 @@ export default function PhoneCallUI({
   // Settings handlers
   const handleSettingsSave = (settings: SiteSettings) => {
     setSiteSettings(settings);
-    setUserId(settings.userId);
+    setUserId(settings.siteName); // Use site name as user ID
     setTargetUserId(settings.targetUserId);
     setChannel(settings.channel);
     setShowSettings(false);
@@ -499,11 +497,10 @@ export default function PhoneCallUI({
 
         {/* Site Information Display */}
         <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-          {siteSettings && (
+          {siteSettings && siteSettings.siteName && (
             <div className="mb-2">
               <p className="text-sm text-blue-800">
-                <strong>Site:</strong>{" "}
-                {siteSettings.siteName || siteSettings.siteId}
+                <strong>Site:</strong> {siteSettings.siteName}
               </p>
             </div>
           )}

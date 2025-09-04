@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react";
 
 interface SiteSettings {
-  siteId: string;
   channel: string;
-  userId: string;
   targetUserId: string;
   siteName: string;
 }
@@ -22,9 +20,7 @@ export default function SettingsPage({
   currentSettings,
 }: SettingsPageProps) {
   const [settings, setSettings] = useState<SiteSettings>({
-    siteId: "",
     channel: "",
-    userId: "",
     targetUserId: "",
     siteName: "",
   });
@@ -53,12 +49,7 @@ export default function SettingsPage({
 
   const handleSave = () => {
     // Validate required fields
-    if (
-      !settings.siteId ||
-      !settings.channel ||
-      !settings.userId ||
-      !settings.targetUserId
-    ) {
+    if (!settings.channel || !settings.siteName || !settings.targetUserId) {
       alert("Please fill in all required fields");
       return;
     }
@@ -68,19 +59,6 @@ export default function SettingsPage({
 
     // Notify parent component
     onSettingsSave(settings);
-  };
-
-  const generateChannelName = () => {
-    if (settings.siteId) {
-      handleInputChange("channel", `dragnet-site-${settings.siteId}`);
-    }
-  };
-
-  const generateUserIds = () => {
-    if (settings.siteId) {
-      handleInputChange("userId", `${settings.siteId}-tablet-a`);
-      handleInputChange("targetUserId", `${settings.siteId}-tablet-b`);
-    }
   };
 
   return (
@@ -123,24 +101,9 @@ export default function SettingsPage({
                   onChange={(e) =>
                     handleInputChange("siteName", e.target.value)
                   }
-                  placeholder="e.g., Main Entrance, Security Office"
+                  placeholder="e.g., BCA-FCC, BCA-Lobby, Main Entrance"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Site ID <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={settings.siteId}
-                  onChange={(e) => handleInputChange("siteId", e.target.value)}
-                  placeholder="e.g., 1, 2, 3, main, north"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Unique identifier for this site
-                </p>
               </div>
             </div>
           </div>
@@ -155,23 +118,13 @@ export default function SettingsPage({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   RTM/RTC Channel <span className="text-red-500">*</span>
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={settings.channel}
-                    onChange={(e) =>
-                      handleInputChange("channel", e.target.value)
-                    }
-                    placeholder="e.g., dragnet-site-1"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                  <button
-                    onClick={generateChannelName}
-                    className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
-                  >
-                    Auto
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  value={settings.channel}
+                  onChange={(e) => handleInputChange("channel", e.target.value)}
+                  placeholder="e.g., dragnet-bca-fcc, dragnet-main-entrance"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
                 <p className="text-xs text-gray-500 mt-1">
                   All tablets at this site must use the same channel
                 </p>
@@ -187,18 +140,6 @@ export default function SettingsPage({
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  This Tablet ID <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={settings.userId}
-                  onChange={(e) => handleInputChange("userId", e.target.value)}
-                  placeholder="e.g., site1-tablet-a"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Target Tablet ID <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -207,63 +148,14 @@ export default function SettingsPage({
                   onChange={(e) =>
                     handleInputChange("targetUserId", e.target.value)
                   }
-                  placeholder="e.g., site1-tablet-b"
+                  placeholder="e.g., BCA-Lobby, BCA-FCC"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
-              <button
-                onClick={generateUserIds}
-                className="w-full px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm"
-              >
-                Generate Tablet IDs
-              </button>
               <p className="text-xs text-gray-500">
-                Each tablet pair needs unique IDs. The other tablet should have
-                the opposite configuration.
+                This tablet will use the site name as its ID. Enter the ID of
+                the tablet you want to call.
               </p>
-            </div>
-          </div>
-
-          {/* Quick Setup Examples */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-3">
-              Quick Setup Examples
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="font-medium">Site 1 - Tablet A:</span>
-                <button
-                  onClick={() => {
-                    setSettings({
-                      siteId: "1",
-                      channel: "dragnet-site-1",
-                      userId: "site1-tablet-a",
-                      targetUserId: "site1-tablet-b",
-                      siteName: "Main Entrance",
-                    });
-                  }}
-                  className="text-blue-500 hover:text-blue-700"
-                >
-                  Apply
-                </button>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Site 1 - Tablet B:</span>
-                <button
-                  onClick={() => {
-                    setSettings({
-                      siteId: "1",
-                      channel: "dragnet-site-1",
-                      userId: "site1-tablet-b",
-                      targetUserId: "site1-tablet-a",
-                      siteName: "Main Entrance",
-                    });
-                  }}
-                  className="text-blue-500 hover:text-blue-700"
-                >
-                  Apply
-                </button>
-              </div>
             </div>
           </div>
 
