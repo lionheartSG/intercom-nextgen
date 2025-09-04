@@ -5,10 +5,11 @@ import VideoCall from "../components/VideoCall";
 export default function Home() {
   const appId = process.env.NEXT_PUBLIC_AGORA_APP_ID || "";
   const channel = process.env.NEXT_PUBLIC_AGORA_CHANNEL || "test-channel";
+  const token = process.env.NEXT_PUBLIC_AGORA_TOKEN || undefined;
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <VideoCall appId={appId} channel={channel} />
+      <VideoCall appId={appId} channel={channel} token={token} />
     </div>
   );
 }

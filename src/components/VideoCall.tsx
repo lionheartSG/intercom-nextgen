@@ -1,14 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import AgoraRTC, {
-  IAgoraRTCClient,
-  ICameraVideoTrack,
-  IMicrophoneAudioTrack,
-  ClientConfig,
-  ConnectionState,
-  IAgoraRTCRemoteUser,
-} from "agora-rtc-sdk-ng";
 
 interface VideoCallProps {
   appId: string;
@@ -21,27 +13,52 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionState, setConnectionState] =
-    useState<ConnectionState>("DISCONNECTED");
+    useState<string>("DISCONNECTED");
+  const [isClient, setIsClient] = useState(false);
+  const [agoraLoaded, setAgoraLoaded] = useState(false);
 
-  const clientRef = useRef<IAgoraRTCClient | null>(null);
-  const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null);
-  const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
+  const clientRef = useRef<any>(null);
+  const localVideoTrackRef = useRef<any>(null);
+  const localAudioTrackRef = useRef<any>(null);
   const localVideoElementRef = useRef<HTMLDivElement>(null);
   const remoteVideoElementRef = useRef<HTMLDivElement>(null);
+  const agoraRTCRef = useRef<any>(null);
+
+  // Check if we're on the client side and load Agora SDK
+  useEffect(() => {
+    setIsClient(true);
+
+    // Dynamically import Agora SDK
+    const loadAgora = async () => {
+      try {
+        const AgoraRTC = await import("agora-rtc-sdk-ng");
+        agoraRTCRef.current = AgoraRTC.default;
+        setAgoraLoaded(true);
+        console.log("Agora SDK loaded successfully");
+      } catch (err) {
+        console.error("Failed to load Agora SDK:", err);
+        setError("Failed to load video calling SDK");
+      }
+    };
+
+    loadAgora();
+  }, []);
 
   // Initialize Agora client
   useEffect(() => {
-    const config: ClientConfig = {
+    if (!isClient || !agoraLoaded || !agoraRTCRef.current) return;
+
+    const config = {
       mode: "rtc",
       codec: "vp8",
     };
 
-    clientRef.current = AgoraRTC.createClient(config);
+    clientRef.current = agoraRTCRef.current.createClient(config);
 
     // Listen to connection state changes
     clientRef.current.on(
       "connection-state-change",
-      (curState: ConnectionState, revState: ConnectionState) => {
+      (curState: string, revState: string) => {
         console.log("Connection state changed:", revState, "->", curState);
         setConnectionState(curState);
       }
@@ -50,7 +67,7 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
     // Listen to user joined
     clientRef.current.on(
       "user-published",
-      async (user: IAgoraRTCRemoteUser, mediaType: "audio" | "video") => {
+      async (user: any, mediaType: "audio" | "video") => {
         console.log("User published:", user, mediaType);
 
         if (clientRef.current) {
@@ -76,7 +93,7 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
     // Listen to user left
     clientRef.current.on(
       "user-unpublished",
-      (user: IAgoraRTCRemoteUser, mediaType: "audio" | "video") => {
+      (user: any, mediaType: "audio" | "video") => {
         console.log("User unpublished:", user, mediaType);
         if (mediaType === "video" && remoteVideoElementRef.current) {
           remoteVideoElementRef.current.innerHTML = "";
@@ -89,11 +106,11 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
         clientRef.current.removeAllListeners();
       }
     };
-  }, []);
+  }, [isClient, agoraLoaded]);
 
   const joinChannel = async () => {
-    if (!clientRef.current || !appId || !channel) {
-      setError("Missing required parameters");
+    if (!clientRef.current || !appId || !channel || !agoraRTCRef.current) {
+      setError("Missing required parameters or Agora SDK not loaded");
       return;
     }
 
@@ -101,13 +118,23 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
     setError(null);
 
     try {
+      // For development, you can use null token if your project allows it
+      // For production, you should always use a valid token
+      const joinToken = token || null;
+
+      console.log("Joining channel with:", {
+        appId,
+        channel,
+        hasToken: !!joinToken,
+      });
+
       // Join the channel
-      await clientRef.current.join(appId, channel, token || null);
+      await clientRef.current.join(appId, channel, joinToken);
       setIsJoined(true);
 
       // Create local tracks
       const [audioTrack, videoTrack] =
-        await AgoraRTC.createMicrophoneAndCameraTracks();
+        await agoraRTCRef.current.createMicrophoneAndCameraTracks();
 
       localAudioTrackRef.current = audioTrack;
       localVideoTrackRef.current = videoTrack;
@@ -119,9 +146,23 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
 
       // Publish tracks
       await clientRef.current.publish([audioTrack, videoTrack]);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error joining channel:", err);
-      setError(err instanceof Error ? err.message : "Failed to join channel");
+
+      // Handle specific Agora errors
+      if (err.code === 4096) {
+        setError(
+          "Token required: Your Agora project requires token authentication. Please add NEXT_PUBLIC_AGORA_TOKEN to your .env.local file or configure your project to allow static keys for development."
+        );
+      } else if (err.code === 17) {
+        setError(
+          "Invalid App ID: Please check your Agora App ID in .env.local"
+        );
+      } else if (err.code === 2) {
+        setError("Invalid token: Please check your Agora token");
+      } else {
+        setError(err.message || "Failed to join channel");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -184,6 +225,23 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
       );
     }
   };
+
+  // Show loading state while client-side hydration is happening
+  if (!isClient || !agoraLoaded) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-bold mb-4 text-center">Video Call</h2>
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <p className="mt-2 text-gray-600">
+              {!isClient ? "Loading..." : "Loading video SDK..."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -273,16 +331,31 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
 
         {/* Instructions */}
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h3 className="font-medium text-blue-900 mb-2">How to test:</h3>
+          <h3 className="font-medium text-blue-900 mb-2">
+            Setup Instructions:
+          </h3>
           <ol className="text-sm text-blue-800 space-y-1">
             <li>
-              1. Replace your_app_id_here in .env.local with your actual Agora
+              1. Replace "your_app_id_here" in .env.local with your actual Agora
               App ID
             </li>
-            <li>2. Open this page in two different browser tabs or devices</li>
-            <li>3. Click Join Channel on both devices</li>
             <li>
-              4. You should see each others video and hear each others audio
+              2. <strong>Token Setup:</strong> If you get a "Token required"
+              error, you have two options:
+            </li>
+            <li className="ml-4">
+              a) <strong>For Development:</strong> Go to your Agora Console →
+              Project Settings → App Certificate → Enable "Use App Certificate"
+              and set it to "No" (allows static keys)
+            </li>
+            <li className="ml-4">
+              b) <strong>For Production:</strong> Generate a token server-side
+              and add NEXT_PUBLIC_AGORA_TOKEN to .env.local
+            </li>
+            <li>3. Open this page in two different browser tabs or devices</li>
+            <li>4. Click "Join Channel" on both devices</li>
+            <li>
+              5. You should see each other's video and hear each other's audio
             </li>
           </ol>
         </div>
