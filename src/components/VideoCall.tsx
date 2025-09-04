@@ -18,7 +18,6 @@ interface VideoCallProps {
 
 export default function VideoCall({ appId, channel, token }: VideoCallProps) {
   const [isJoined, setIsJoined] = useState(false);
-  const [isPublished, setIsPublished] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionState, setConnectionState] =
@@ -120,7 +119,6 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
 
       // Publish tracks
       await clientRef.current.publish([audioTrack, videoTrack]);
-      setIsPublished(true);
     } catch (err) {
       console.error("Error joining channel:", err);
       setError(err instanceof Error ? err.message : "Failed to join channel");
@@ -162,7 +160,6 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
       }
 
       setIsJoined(false);
-      setIsPublished(false);
       setConnectionState("DISCONNECTED");
     } catch (err) {
       console.error("Error leaving channel:", err);
@@ -279,13 +276,13 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
           <h3 className="font-medium text-blue-900 mb-2">How to test:</h3>
           <ol className="text-sm text-blue-800 space-y-1">
             <li>
-              1. Replace "your_app_id_here" in .env.local with your actual Agora
+              1. Replace your_app_id_here in .env.local with your actual Agora
               App ID
             </li>
             <li>2. Open this page in two different browser tabs or devices</li>
-            <li>3. Click "Join Channel" on both devices</li>
+            <li>3. Click Join Channel on both devices</li>
             <li>
-              4. You should see each other's video and hear each other's audio
+              4. You should see each other's video and hear each others audio
             </li>
           </ol>
         </div>
