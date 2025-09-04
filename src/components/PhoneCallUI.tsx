@@ -376,13 +376,13 @@ export default function PhoneCallUI({
       setError(null);
       if (clientRef.current && channelName) {
         const { createChannel } = await import("agora-rtm-react");
-        const useChannel = createChannel(channelName);
+        const useRTMChannel = createChannel(channelName);
         const client = clientRef.current();
         if (!client) {
           console.error("RTM client not available for channel join");
           return;
         }
-        const rtmChannel = useChannel(client);
+        const rtmChannel = useRTMChannel(client);
 
         // Set up channel event listeners
         const handleChannelMessage = (message: any, memberId: string) => {
