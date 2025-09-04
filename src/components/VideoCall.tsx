@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { generateAgoraToken } from "../lib/agora-token";
 
 interface VideoCallProps {
   appId: string;
@@ -16,6 +17,9 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
     useState<string>("DISCONNECTED");
   const [isClient, setIsClient] = useState(false);
   const [agoraLoaded, setAgoraLoaded] = useState(false);
+  const [currentToken, setCurrentToken] = useState<string | null>(null);
+  const [tokenExpiresAt, setTokenExpiresAt] = useState<number | null>(null);
+  const [currentUid, setCurrentUid] = useState<number>(0);
 
   const clientRef = useRef<any>(null);
   const localVideoTrackRef = useRef<any>(null);
@@ -43,6 +47,23 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
 
     loadAgora();
   }, []);
+
+  // Token refresh mechanism
+  useEffect(() => {
+    if (!isJoined || !tokenExpiresAt) return;
+
+    const checkTokenExpiry = () => {
+      if (isTokenExpired()) {
+        console.log("Token is about to expire, refreshing...");
+        generateToken().catch(console.error);
+      }
+    };
+
+    // Check every minute
+    const interval = setInterval(checkTokenExpiry, 60000);
+
+    return () => clearInterval(interval);
+  }, [isJoined, tokenExpiresAt]);
 
   // Initialize Agora client
   useEffect(() => {
@@ -108,6 +129,41 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
     };
   }, [isClient, agoraLoaded]);
 
+  // Function to generate a new token
+  const generateToken = async (uid?: number) => {
+    try {
+      const tokenUid = uid || 0; // Use provided UID or default to 0
+
+      const tokenResponse = await generateAgoraToken({
+        channel,
+        uid: tokenUid,
+        expirationTimeInSeconds: 3600, // 1 hour
+      });
+
+      setCurrentToken(tokenResponse.token);
+      setTokenExpiresAt(tokenResponse.expiresAt);
+
+      console.log(
+        "Token generated successfully for UID:",
+        tokenUid,
+        "expires at:",
+        new Date(tokenResponse.expiresAt * 1000)
+      );
+      return tokenResponse.token;
+    } catch (err) {
+      console.error("Error generating token:", err);
+      setError("Failed to generate authentication token");
+      throw err;
+    }
+  };
+
+  // Function to check if token is expired or about to expire
+  const isTokenExpired = () => {
+    if (!tokenExpiresAt) return true;
+    const now = Math.floor(Date.now() / 1000);
+    return tokenExpiresAt - now < 300; // Consider expired if less than 5 minutes left
+  };
+
   const joinChannel = async () => {
     if (!clientRef.current || !appId || !channel || !agoraRTCRef.current) {
       setError("Missing required parameters or Agora SDK not loaded");
@@ -118,18 +174,30 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
     setError(null);
 
     try {
-      // For development, you can use null token if your project allows it
-      // For production, you should always use a valid token
-      const joinToken = token || null;
+      // Generate a consistent UID for this session
+      const sessionUid = currentUid || Math.floor(Math.random() * 1000000);
+      setCurrentUid(sessionUid);
+
+      // Generate a new token if we don't have one or if it's expired
+      let joinToken = token || currentToken;
+
+      if (!joinToken || isTokenExpired()) {
+        console.log("Generating new token for UID:", sessionUid);
+        joinToken = await generateToken(sessionUid);
+      }
 
       console.log("Joining channel with:", {
         appId,
         channel,
+        uid: sessionUid,
         hasToken: !!joinToken,
+        tokenExpiresAt: tokenExpiresAt
+          ? new Date(tokenExpiresAt * 1000).toISOString()
+          : "N/A",
       });
 
-      // Join the channel
-      await clientRef.current.join(appId, channel, joinToken);
+      // Join the channel with the same UID used for token generation
+      await clientRef.current.join(appId, channel, joinToken, sessionUid);
       setIsJoined(true);
 
       // Create local tracks
@@ -249,7 +317,7 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
         <h2 className="text-2xl font-bold mb-4 text-center">Video Call</h2>
 
         {/* Status */}
-        <div className="mb-4 text-center">
+        <div className="mb-4 text-center space-y-2">
           <div className="inline-block px-3 py-1 rounded-full text-sm font-medium">
             <span
               className={`inline-block w-2 h-2 rounded-full mr-2 ${
@@ -262,6 +330,16 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
             ></span>
             {connectionState}
           </div>
+
+          {/* Token Status */}
+          {currentToken && (
+            <div className="text-xs text-gray-600">
+              Token expires:{" "}
+              {tokenExpiresAt
+                ? new Date(tokenExpiresAt * 1000).toLocaleTimeString()
+                : "Unknown"}
+            </div>
+          )}
         </div>
 
         {/* Error Display */}
@@ -329,7 +407,7 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
           )}
         </div>
 
-        {/* Instructions */}
+        {/* Instructions
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
           <h3 className="font-medium text-blue-900 mb-2">
             Setup Instructions:
@@ -358,7 +436,7 @@ export default function VideoCall({ appId, channel, token }: VideoCallProps) {
               5. You should see each other's video and hear each other's audio
             </li>
           </ol>
-        </div>
+        </div> */}
       </div>
     </div>
   );
