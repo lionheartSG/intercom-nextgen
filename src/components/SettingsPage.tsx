@@ -115,7 +115,10 @@ export default function SettingsPage({
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-gray-100 flex items-center justify-center p-4"
+      style={{ colorScheme: "light" }}
+    >
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
         <div className="flex items-center mb-6">
           <button
@@ -136,7 +139,9 @@ export default function SettingsPage({
               />
             </svg>
           </button>
-          <h1 className="text-2xl font-bold">Site Configuration</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Site Configuration
+          </h1>
         </div>
 
         <div className="space-y-6">
@@ -155,9 +160,9 @@ export default function SettingsPage({
                     handleInputChange("siteName", e.target.value)
                   }
                   placeholder="e.g., BCA-FCC, BCA-Lobby, Main Entrance (auto-generated if empty)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-600 mt-1">
                   This will be used as your tablet ID. Change to your preferred
                   site name.
                 </p>
@@ -180,9 +185,9 @@ export default function SettingsPage({
                   value={settings.channel}
                   onChange={(e) => handleInputChange("channel", e.target.value)}
                   placeholder="e.g., dragnet-bca-fcc, dragnet-main-entrance"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-600 mt-1">
                   All tablets at this site must use the same channel
                 </p>
               </div>
@@ -208,7 +213,7 @@ export default function SettingsPage({
                         updateTargetUserId(index, e.target.value)
                       }
                       placeholder="e.g., BCA-Lobby, BCA-FCC, BCA-Office"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                     />
                     <button
                       onClick={() => removeTargetUserId(index)}
@@ -238,7 +243,7 @@ export default function SettingsPage({
                   + Add Target Tablet
                 </button>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-600">
                 This tablet will use the site name as its ID. Add all the
                 tablets you want to be able to call.
               </p>
