@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 import VideoCall from "./VideoCall";
+import SettingsPage from "./SettingsPage";
 import { generateRtmToken } from "../lib/agora-token";
+
+interface SiteSettings {
+  siteId: string;
+  channel: string;
+  userId: string;
+  targetUserId: string;
+  siteName: string;
+}
 
 interface PhoneCallUIProps {
   appId: string;
@@ -40,6 +49,8 @@ export default function PhoneCallUI({
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [rtmToken, setRtmToken] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
   const currentCallIdRef = useRef<string | null>(null);
   const clientRef = useRef<any>(null);
@@ -52,15 +63,41 @@ export default function PhoneCallUI({
     setIsClient(true);
   }, []);
 
-  // Generate unique user ID on mount
+  // Load settings from localStorage on mount
   useEffect(() => {
-    if (!userId && isClient) {
-      const generatedUserId = `user_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 5)}`;
-      setUserId(generatedUserId);
+    if (isClient) {
+      const savedSettings = localStorage.getItem("dragnet-site-settings");
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings);
+          setSiteSettings(parsed);
+          setUserId(parsed.userId);
+          setTargetUserId(parsed.targetUserId);
+          setChannel(parsed.channel);
+        } catch (error) {
+          console.error("Failed to parse saved settings:", error);
+          // Show settings page if parsing fails
+          setShowSettings(true);
+        }
+      } else {
+        // Show settings page if no settings found
+        setShowSettings(true);
+      }
     }
-  }, [userId, isClient]);
+  }, [isClient]);
+
+  // Settings handlers
+  const handleSettingsSave = (settings: SiteSettings) => {
+    setSiteSettings(settings);
+    setUserId(settings.userId);
+    setTargetUserId(settings.targetUserId);
+    setChannel(settings.channel);
+    setShowSettings(false);
+  };
+
+  const handleSettingsBack = () => {
+    setShowSettings(false);
+  };
 
   // Generate RTM token
   const generateRtmTokenForUser = async (uid: string) => {
@@ -357,6 +394,17 @@ export default function PhoneCallUI({
     }
   };
 
+  // Show settings page if no settings configured
+  if (showSettings) {
+    return (
+      <SettingsPage
+        onSettingsSave={handleSettingsSave}
+        onBack={handleSettingsBack}
+        currentSettings={siteSettings || undefined}
+      />
+    );
+  }
+
   // Show loading state while client-side hydration is happening
   if (!isClient || !rtmLoaded) {
     return (
@@ -400,9 +448,34 @@ export default function PhoneCallUI({
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
-        <h1 className="text-2xl font-bold text-center mb-6">
-          Phone Call System
-        </h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Phone Call System</h1>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+            title="Settings"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </button>
+        </div>
 
         {/* Connection Status */}
         <div className="mb-4 text-center">
@@ -424,11 +497,23 @@ export default function PhoneCallUI({
           </div>
         )}
 
-        {/* User ID Display */}
+        {/* Site Information Display */}
         <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+          {siteSettings && (
+            <div className="mb-2">
+              <p className="text-sm text-blue-800">
+                <strong>Site:</strong>{" "}
+                {siteSettings.siteName || siteSettings.siteId}
+              </p>
+            </div>
+          )}
           <p className="text-sm text-blue-800">
             <strong>Your ID:</strong>{" "}
             <span className="font-mono">{userId}</span>
+          </p>
+          <p className="text-sm text-blue-800">
+            <strong>Target ID:</strong>{" "}
+            <span className="font-mono">{targetUserId}</span>
           </p>
         </div>
 
