@@ -25,6 +25,14 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isVideoOff, setIsVideoOff] = useState<boolean>(false);
 
+  // Utility function to detect mobile devices
+  const isMobileDevice = () => {
+    if (typeof window === "undefined") return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+  };
+
   const clientRef = useRef<any>(null);
   const localVideoTrackRef = useRef<any>(null);
   const localAudioTrackRef = useRef<any>(null);
@@ -154,6 +162,20 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
           if (mediaType === "audio") {
             const remoteAudioTrack = user.audioTrack;
             if (remoteAudioTrack && remoteAudioElementRef.current) {
+              // Set up mobile audio routing before playing
+              if (isMobileDevice()) {
+                // Ensure audio plays through earpiece on mobile
+                remoteAudioElementRef.current.setAttribute(
+                  "playsinline",
+                  "true"
+                );
+                remoteAudioElementRef.current.setAttribute(
+                  "webkit-playsinline",
+                  "true"
+                );
+                remoteAudioElementRef.current.volume = 0.8; // Lower volume to prevent feedback
+              }
+
               remoteAudioTrack.play(remoteAudioElementRef.current);
             }
           }
@@ -314,6 +336,28 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
       // Play local video
       if (localVideoElementRef.current) {
         videoTrack.play(localVideoElementRef.current);
+      }
+
+      // Set audio route to earpiece on mobile devices to prevent feedback
+      if (isMobileDevice()) {
+        try {
+          // Use Agora's audio output routing for mobile
+          await clientRef.current.setAudioOutput("earpiece");
+          console.log("Audio routed to earpiece for mobile device");
+        } catch (error) {
+          console.log("Failed to set audio output to earpiece:", error);
+
+          // Fallback: Set audio element properties for mobile
+          if (remoteAudioElementRef.current) {
+            remoteAudioElementRef.current.setAttribute("playsinline", "true");
+            remoteAudioElementRef.current.setAttribute(
+              "webkit-playsinline",
+              "true"
+            );
+            // Try to set volume lower to reduce feedback
+            remoteAudioElementRef.current.volume = 0.8;
+          }
+        }
       }
 
       // Publish tracks
