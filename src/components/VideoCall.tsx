@@ -30,6 +30,7 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   const localAudioTrackRef = useRef<any>(null);
   const localVideoElementRef = useRef<HTMLDivElement>(null);
   const remoteVideoElementRef = useRef<HTMLDivElement>(null);
+  const remoteAudioElementRef = useRef<HTMLAudioElement>(null);
   const agoraRTCRef = useRef<any>(null);
   // Check if we're on the client side and load Agora SDK
   useEffect(() => {
@@ -123,6 +124,12 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
     const config = {
       mode: "rtc",
       codec: "vp8",
+      // Additional audio processing options
+      audioProcessing: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
     };
 
     clientRef.current = agoraRTCRef.current.createClient(config);
@@ -152,8 +159,8 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
 
           if (mediaType === "audio") {
             const remoteAudioTrack = user.audioTrack;
-            if (remoteAudioTrack) {
-              remoteAudioTrack.play();
+            if (remoteAudioTrack && remoteAudioElementRef.current) {
+              remoteAudioTrack.play(remoteAudioElementRef.current);
             }
           }
         }
@@ -164,6 +171,9 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
     clientRef.current.on("user-unpublished", (user: any, mediaType: any) => {
       if (mediaType === "video" && user.videoTrack) {
         user.videoTrack.stop();
+      }
+      if (mediaType === "audio" && user.audioTrack) {
+        user.audioTrack.stop();
       }
     });
 
@@ -277,9 +287,20 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
       await clientRef.current.join(appId, channel, joinToken, sessionUid);
       setIsJoined(true);
 
-      // Create local tracks
+      // Create local tracks with echo cancellation
       const [audioTrack, videoTrack] =
-        await agoraRTCRef.current.createMicrophoneAndCameraTracks();
+        await agoraRTCRef.current.createMicrophoneAndCameraTracks(
+          {
+            // Enable echo cancellation and noise suppression
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          {
+            // Video track options
+            encoderConfig: "480p_1",
+          }
+        );
 
       localAudioTrackRef.current = audioTrack;
       localVideoTrackRef.current = videoTrack;
@@ -369,6 +390,14 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
               className="w-full h-full bg-gray-900"
             ></div>
           </div>
+
+          {/* Remote Audio - Hidden audio element for remote audio */}
+          <audio
+            ref={remoteAudioElementRef}
+            autoPlay
+            playsInline
+            style={{ display: "none" }}
+          />
 
           {/* Local Video - Picture in Picture */}
           <div className="absolute top-4 right-4 w-32 h-24 bg-gray-800 rounded-lg overflow-hidden border-2 border-white">
