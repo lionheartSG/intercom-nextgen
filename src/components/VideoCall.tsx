@@ -22,6 +22,8 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   const [currentUid, setCurrentUid] = useState<number>(0);
   const [channel, setChannel] = useState<string>("");
   const [channelInput, setChannelInput] = useState<string>("");
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isVideoOff, setIsVideoOff] = useState<boolean>(false);
 
   const clientRef = useRef<any>(null);
   const localVideoTrackRef = useRef<any>(null);
@@ -282,6 +284,10 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
       localAudioTrackRef.current = audioTrack;
       localVideoTrackRef.current = videoTrack;
 
+      // Initialize state based on track enabled status
+      setIsMuted(!audioTrack.enabled);
+      setIsVideoOff(!videoTrack.enabled);
+
       // Play local video
       if (localVideoElementRef.current) {
         videoTrack.play(localVideoElementRef.current);
@@ -313,17 +319,17 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
 
   const toggleMute = async () => {
     if (localAudioTrackRef.current) {
-      await localAudioTrackRef.current.setEnabled(
-        !localAudioTrackRef.current.enabled
-      );
+      const newState = !localAudioTrackRef.current.enabled;
+      await localAudioTrackRef.current.setEnabled(newState);
+      setIsMuted((prev) => !prev);
     }
   };
 
   const toggleVideo = async () => {
     if (localVideoTrackRef.current) {
-      await localVideoTrackRef.current.setEnabled(
-        !localVideoTrackRef.current.enabled
-      );
+      const newState = !localVideoTrackRef.current.enabled;
+      await localVideoTrackRef.current.setEnabled(newState);
+      setIsVideoOff((prev) => !prev);
     }
   };
 
@@ -387,12 +393,12 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
               <button
                 onClick={toggleMute}
                 className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
-                  localAudioTrackRef.current?.enabled
+                  !isMuted
                     ? "bg-gray-700 hover:bg-gray-600"
                     : "bg-red-600 hover:bg-red-700"
                 }`}
               >
-                {localAudioTrackRef.current?.enabled ? (
+                {!isMuted ? (
                   <svg
                     className="w-6 h-6 text-white"
                     fill="currentColor"
@@ -430,12 +436,12 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
               <button
                 onClick={toggleVideo}
                 className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
-                  localVideoTrackRef.current?.enabled
+                  !isVideoOff
                     ? "bg-gray-700 hover:bg-gray-600"
                     : "bg-red-600 hover:bg-red-700"
                 }`}
               >
-                {localVideoTrackRef.current?.enabled ? (
+                {!isVideoOff ? (
                   <svg
                     className="w-6 h-6 text-white"
                     fill="currentColor"
