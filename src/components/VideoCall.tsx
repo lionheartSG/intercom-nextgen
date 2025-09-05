@@ -6,9 +6,10 @@ import { generateAgoraToken } from "../lib/agora-token";
 interface VideoCallProps {
   appId: string;
   token?: string; // Optional - will generate dynamically if not provided
+  endCall: () => void;
 }
 
-export default function VideoCall({ appId, token }: VideoCallProps) {
+export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   const [isJoined, setIsJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -452,6 +453,20 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
                 )}
               </button>
 
+              {/* End Call Button */}
+              <button
+                onClick={endCall}
+                className="w-16 h-16 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg"
+              >
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                </svg>
+              </button>
+
               {/* Video Toggle Button */}
               <button
                 onClick={toggleVideo}
@@ -479,54 +494,9 @@ export default function VideoCall({ appId, token }: VideoCallProps) {
                   </svg>
                 )}
               </button>
-
-              {/* End Call Button */}
-              <button
-                onClick={leaveChannel}
-                className="w-16 h-16 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg"
-              >
-                <svg
-                  className="w-6 h-6 text-white"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
-                </svg>
-              </button>
             </div>
           )}
         </div>
-
-        {/* Instructions
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h3 className="font-medium text-blue-900 mb-2">
-            Setup Instructions:
-          </h3>
-          <ol className="text-sm text-blue-800 space-y-1">
-            <li>
-              1. Replace "your_app_id_here" in .env.local with your actual Agora
-              App ID
-            </li>
-            <li>
-              2. <strong>Token Setup:</strong> If you get a "Token required"
-              error, you have two options:
-            </li>
-            <li className="ml-4">
-              a) <strong>For Development:</strong> Go to your Agora Console →
-              Project Settings → App Certificate → Enable "Use App Certificate"
-              and set it to "No" (allows static keys)
-            </li>
-            <li className="ml-4">
-              b) <strong>For Production:</strong> Generate a token server-side
-              and add NEXT_PUBLIC_AGORA_TOKEN to .env.local
-            </li>
-            <li>3. Open this page in two different browser tabs or devices</li>
-            <li>4. Click "Join Channel" on both devices</li>
-            <li>
-              5. You should see each other's video and hear each other's audio
-            </li>
-          </ol>
-        </div> */}
       </div>
     </div>
   );

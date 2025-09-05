@@ -340,27 +340,19 @@ export default function PhoneCallUI({
       setError(null);
       setCurrentTargetUserId("");
 
-      // Send end call signal
-      if (currentCallIdRef.current && channelRef.current) {
-        const endSignal: CallSignal = {
-          type: "CALL_ENDED",
-          from: userId,
-          to: "",
-          channel: channel,
-          timestamp: Date.now(),
-          callId: currentCallIdRef.current,
-        };
-
-        const client = clientRef.current();
-        if (client) {
-          const message = client.createMessage({
-            text: JSON.stringify(endSignal),
-            messageType: "TEXT",
-          });
-          await channelRef.current.sendMessage(message);
-        }
+      // Send end call signal to peer
+      if (
+        currentCallIdRef.current &&
+        (currentCall?.from || currentTargetUserId)
+      ) {
+        await sendCallSignal(
+          currentCall?.from || currentTargetUserId, // the peer
+          channel,
+          "CALL_ENDED"
+        );
       }
 
+      // Local cleanup
       currentCallIdRef.current = null;
       setCurrentCall(null);
       setCallState("IDLE");
@@ -438,23 +430,7 @@ export default function PhoneCallUI({
     return (
       <div className="min-h-screen bg-black relative">
         {/* Video Call Component */}
-        <VideoCall appId={rtcAppId} />
-
-        {/* Mobile-style End Call Button - Centered at bottom */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
-          <button
-            onClick={handleEndCall}
-            className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
-          >
-            <svg
-              className="w-8 h-8 text-white"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.88-.2.2-.51.2-.71 0s-.2-.51 0-.71c.91-.91 1.96-1.68 3.13-2.25.39-.19.87-.19 1.26 0 .39.19.64.56.64.98v3.1c1.45-.47 3-.72 4.6-.72s3.15.25 4.6.72v-3.1c0-.42.25-.79.64-.98.39-.19.87-.19 1.26 0 1.17.57 2.22 1.34 3.13 2.25.2.2.2.51 0 .71s-.51.2-.71 0c-.79-.76-1.68-1.39-2.66-1.88-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z" />
-            </svg>
-          </button>
-        </div>
+        <VideoCall appId={rtcAppId} endCall={handleEndCall} />
       </div>
     );
   }
