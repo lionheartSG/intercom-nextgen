@@ -14,7 +14,6 @@ interface SiteSettings {
 interface PhoneCallUIProps {
   appId: string;
   rtcAppId: string;
-  token?: string; // Keep for backward compatibility but not used
 }
 
 export type CallState =
@@ -33,11 +32,7 @@ export interface CallSignal {
   callId: string;
 }
 
-export default function PhoneCallUI({
-  appId,
-  rtcAppId,
-  token,
-}: PhoneCallUIProps) {
+export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
   const [callState, setCallState] = useState<CallState>("IDLE");
   const [currentCall, setCurrentCall] = useState<CallSignal | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +122,7 @@ export default function PhoneCallUI({
 
     const loadRTM = async () => {
       try {
-        const { createClient, createChannel } = await import("agora-rtm-react");
+        const { createClient } = await import("agora-rtm-react");
 
         const useClient = createClient(appId);
 
