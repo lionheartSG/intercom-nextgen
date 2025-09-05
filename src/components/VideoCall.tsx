@@ -124,12 +124,6 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
     const config = {
       mode: "rtc",
       codec: "vp8",
-      // Additional audio processing options
-      audioProcessing: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
     };
 
     clientRef.current = agoraRTCRef.current.createClient(config);
@@ -287,14 +281,22 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
       await clientRef.current.join(appId, channel, joinToken, sessionUid);
       setIsJoined(true);
 
-      // Create local tracks with echo cancellation
+      // Create local tracks with Agora's advanced audio processing
       const [audioTrack, videoTrack] =
         await agoraRTCRef.current.createMicrophoneAndCameraTracks(
           {
-            // Enable echo cancellation and noise suppression
+            // Use Agora's built-in audio processing
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            audioProcessing: true,
+            sampleRate: 48000,
+            channelCount: 1,
+            // Additional Agora-specific settings
+            AEC: true, // Acoustic Echo Cancellation
+            ANS: true, // Automatic Noise Suppression
+            AGC: true, // Automatic Gain Control
+            // Use mono audio to reduce feedback
           },
           {
             // Video track options
