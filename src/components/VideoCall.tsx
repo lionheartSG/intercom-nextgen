@@ -13,8 +13,7 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   const [isJoined, setIsJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [connectionState, setConnectionState] =
-    useState<string>("DISCONNECTED");
+  const [, setConnectionState] = useState<string>("DISCONNECTED");
   const [isClient, setIsClient] = useState(false);
   const [agoraLoaded, setAgoraLoaded] = useState(false);
   const [clientReady, setClientReady] = useState(false);
@@ -30,7 +29,6 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   const localVideoElementRef = useRef<HTMLDivElement>(null);
   const remoteVideoElementRef = useRef<HTMLDivElement>(null);
   const agoraRTCRef = useRef<any>(null);
-
   // Check if we're on the client side and load Agora SDK
   useEffect(() => {
     setIsClient(true);
@@ -161,14 +159,11 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
     );
 
     // Listen to user left
-    clientRef.current.on(
-      "user-unpublished",
-      (user: any, mediaType: "audio" | "video") => {
-        if (mediaType === "video" && remoteVideoElementRef.current) {
-          remoteVideoElementRef.current.innerHTML = "";
-        }
+    clientRef.current.on("user-unpublished", (user: any, mediaType: any) => {
+      if (mediaType === "video" && user.videoTrack) {
+        user.videoTrack.stop();
       }
-    );
+    });
 
     return () => {
       if (clientRef.current) {
@@ -250,7 +245,13 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   };
 
   const joinChannel = async () => {
-    if (!clientRef.current || !appId || !channel || !agoraRTCRef.current) {
+    if (
+      !clientRef.current ||
+      !appId ||
+      !channel ||
+      !agoraRTCRef.current ||
+      isJoined
+    ) {
       setError("Missing required parameters or Agora SDK not loaded");
       return;
     }
@@ -305,48 +306,6 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
       } else {
         setError(err.message || "Failed to join channel");
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const leaveChannel = async () => {
-    if (!clientRef.current) return;
-
-    setIsLoading(true);
-
-    try {
-      // Stop local tracks
-      if (localVideoTrackRef.current) {
-        localVideoTrackRef.current.stop();
-        localVideoTrackRef.current.close();
-        localVideoTrackRef.current = null;
-      }
-
-      if (localAudioTrackRef.current) {
-        localAudioTrackRef.current.stop();
-        localAudioTrackRef.current.close();
-        localAudioTrackRef.current = null;
-      }
-
-      // Leave the channel
-      await clientRef.current.leave();
-
-      // Clear local video
-      if (localVideoElementRef.current) {
-        localVideoElementRef.current.innerHTML = "";
-      }
-
-      // Clear remote video
-      if (remoteVideoElementRef.current) {
-        remoteVideoElementRef.current.innerHTML = "";
-      }
-
-      setIsJoined(false);
-      setConnectionState("DISCONNECTED");
-    } catch (err) {
-      console.error("Error leaving channel:", err);
-      setError(err instanceof Error ? err.message : "Failed to leave channel");
     } finally {
       setIsLoading(false);
     }

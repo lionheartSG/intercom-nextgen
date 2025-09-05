@@ -47,7 +47,6 @@ export default function PhoneCallUI({
   const [channel, setChannel] = useState<string>("dragnet-channel");
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [rtmToken, setRtmToken] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
@@ -56,6 +55,15 @@ export default function PhoneCallUI({
   const channelRef = useRef<any>(null);
   const [isClient, setIsClient] = useState(false);
   const [rtmLoaded, setRtmLoaded] = useState(false);
+
+  const resetCallState = () => {
+    currentCallIdRef.current = null;
+    setCurrentCall(null);
+    setCallState("IDLE");
+    setShowVideoCall(false);
+    setCurrentTargetUserId("");
+    setError(null);
+  };
 
   // Check if we're on the client side
   useEffect(() => {
@@ -105,7 +113,6 @@ export default function PhoneCallUI({
         uid: uid,
         expirationTimeInSeconds: 3600, // 1 hour
       });
-      setRtmToken(tokenResponse.token);
       return tokenResponse.token;
     } catch (err) {
       console.error("Failed to generate RTM token:", err);
@@ -229,9 +236,7 @@ export default function PhoneCallUI({
         setError("Call was declined");
         break;
       case "CALL_ENDED":
-        setCurrentCall(null);
-        setCallState("IDLE");
-        setShowVideoCall(false);
+        resetCallState();
         break;
     }
   };
@@ -337,26 +342,15 @@ export default function PhoneCallUI({
 
   const handleEndCall = async () => {
     try {
-      setError(null);
-      setCurrentTargetUserId("");
-
-      // Send end call signal to peer
-      if (
-        currentCallIdRef.current &&
-        (currentCall?.from || currentTargetUserId)
-      ) {
-        await sendCallSignal(
-          currentCall?.from || currentTargetUserId, // the peer
-          channel,
-          "CALL_ENDED"
-        );
+      // If already idle, don't double-cleanup
+      if (callState === "IDLE") return;
+      const target = currentCall?.from ?? currentTargetUserId;
+      if (target) {
+        await sendCallSignal(target, channel, "CALL_ENDED");
+      } else {
+        console.warn("No target user to notify about call end");
       }
-
-      // Local cleanup
-      currentCallIdRef.current = null;
-      setCurrentCall(null);
-      setCallState("IDLE");
-      setShowVideoCall(false);
+      resetCallState();
     } catch (err) {
       console.error("Failed to end call:", err);
       setError("Failed to end call");
