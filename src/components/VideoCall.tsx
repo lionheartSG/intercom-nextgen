@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { generateAgoraToken } from "../lib/agora-token";
+import type {
+  ILocalVideoTrack,
+  ILocalAudioTrack,
+  MicrophoneAudioTrackInitConfig,
+  CameraVideoTrackInitConfig,
+  ClientConfig,
+} from "agora-rtc-sdk-ng";
 
 interface VideoCallProps {
   appId: string;
@@ -33,13 +40,24 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
     );
   };
 
+  // Helper function to configure mobile audio routing
+  const configureMobileAudio = (audioElement: HTMLAudioElement) => {
+    if (isMobileDevice()) {
+      audioElement.setAttribute("playsinline", "true");
+      audioElement.setAttribute("webkit-playsinline", "true");
+      audioElement.volume = 0.8; // Lower volume to prevent feedback
+    }
+  };
+
   const clientRef = useRef<any>(null);
-  const localVideoTrackRef = useRef<any>(null);
-  const localAudioTrackRef = useRef<any>(null);
+  const localVideoTrackRef = useRef<ILocalVideoTrack | null>(null);
+  const localAudioTrackRef = useRef<ILocalAudioTrack | null>(null);
   const localVideoElementRef = useRef<HTMLDivElement>(null);
   const remoteVideoElementRef = useRef<HTMLDivElement>(null);
   const remoteAudioElementRef = useRef<HTMLAudioElement>(null);
-  const agoraRTCRef = useRef<any>(null);
+  const agoraRTCRef = useRef<typeof import("agora-rtc-sdk-ng").default | null>(
+    null
+  );
   // Check if we're on the client side and load Agora SDK
   useEffect(() => {
     setIsClient(true);
@@ -129,7 +147,7 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   useEffect(() => {
     if (!isClient || !agoraLoaded || !agoraRTCRef.current) return;
 
-    const config = {
+    const config: ClientConfig = {
       mode: "rtc",
       codec: "vp8",
     };
@@ -162,20 +180,8 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
           if (mediaType === "audio") {
             const remoteAudioTrack = user.audioTrack;
             if (remoteAudioTrack && remoteAudioElementRef.current) {
-              // Set up mobile audio routing before playing
-              if (isMobileDevice()) {
-                // Ensure audio plays through earpiece on mobile
-                remoteAudioElementRef.current.setAttribute(
-                  "playsinline",
-                  "true"
-                );
-                remoteAudioElementRef.current.setAttribute(
-                  "webkit-playsinline",
-                  "true"
-                );
-                remoteAudioElementRef.current.volume = 0.8; // Lower volume to prevent feedback
-              }
-
+              // Configure mobile audio routing
+              configureMobileAudio(remoteAudioElementRef.current);
               remoteAudioTrack.play(remoteAudioElementRef.current);
             }
           }
@@ -184,14 +190,17 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
     );
 
     // Listen to user left
-    clientRef.current.on("user-unpublished", (user: any, mediaType: any) => {
-      if (mediaType === "video" && user.videoTrack) {
-        user.videoTrack.stop();
+    clientRef.current.on(
+      "user-unpublished",
+      (user: any, mediaType: "audio" | "video") => {
+        if (mediaType === "video" && user.videoTrack) {
+          user.videoTrack.stop();
+        }
+        if (mediaType === "audio" && user.audioTrack) {
+          user.audioTrack.stop();
+        }
       }
-      if (mediaType === "audio" && user.audioTrack) {
-        user.audioTrack.stop();
-      }
-    });
+    );
 
     return () => {
       if (clientRef.current) {
@@ -304,26 +313,26 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
       setIsJoined(true);
 
       // Create local tracks with Agora's advanced audio processing
+      const audioConfig: any = {
+        // Use Agora's built-in audio processing
+        sampleRate: 48000,
+        channelCount: 1,
+        // Additional Agora-specific settings
+        AEC: true, // Acoustic Echo Cancellation
+        ANS: true, // Automatic Noise Suppression
+        AGC: true, // Automatic Gain Control
+        // Use mono audio to reduce feedback
+      };
+
+      const videoConfig: CameraVideoTrackInitConfig = {
+        // Video track options
+        encoderConfig: "480p_1",
+      };
+
       const [audioTrack, videoTrack] =
         await agoraRTCRef.current.createMicrophoneAndCameraTracks(
-          {
-            // Use Agora's built-in audio processing
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            audioProcessing: true,
-            sampleRate: 48000,
-            channelCount: 1,
-            // Additional Agora-specific settings
-            AEC: true, // Acoustic Echo Cancellation
-            ANS: true, // Automatic Noise Suppression
-            AGC: true, // Automatic Gain Control
-            // Use mono audio to reduce feedback
-          },
-          {
-            // Video track options
-            encoderConfig: "480p_1",
-          }
+          audioConfig,
+          videoConfig
         );
 
       localAudioTrackRef.current = audioTrack;
@@ -347,37 +356,32 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
         } catch (error) {
           console.log("Failed to set audio output to earpiece:", error);
 
-          // Fallback: Set audio element properties for mobile
+          // Fallback: Configure audio element for mobile
           if (remoteAudioElementRef.current) {
-            remoteAudioElementRef.current.setAttribute("playsinline", "true");
-            remoteAudioElementRef.current.setAttribute(
-              "webkit-playsinline",
-              "true"
-            );
-            // Try to set volume lower to reduce feedback
-            remoteAudioElementRef.current.volume = 0.8;
+            configureMobileAudio(remoteAudioElementRef.current);
           }
         }
       }
 
       // Publish tracks
       await clientRef.current.publish([audioTrack, videoTrack]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error joining channel:", err);
 
       // Handle specific Agora errors
-      if (err.code === 4096) {
+      const error = err as { code: number; message: string };
+      if (error.code === 4096) {
         setError(
           "Token required: Your Agora project requires token authentication. Please add NEXT_PUBLIC_AGORA_TOKEN to your .env.local file or configure your project to allow static keys for development."
         );
-      } else if (err.code === 17) {
+      } else if (error.code === 17) {
         setError(
           "Invalid App ID: Please check your Agora App ID in .env.local"
         );
-      } else if (err.code === 2) {
+      } else if (error.code === 2) {
         setError("Invalid token: Please check your Agora token");
       } else {
-        setError(err.message || "Failed to join channel");
+        setError(error.message || "Failed to join channel");
       }
     } finally {
       setIsLoading(false);
