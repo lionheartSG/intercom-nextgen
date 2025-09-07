@@ -51,6 +51,8 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [settingsTapCount, setSettingsTapCount] = useState(0);
+  const [showSettingsButton, setShowSettingsButton] = useState(false);
 
   const currentCallIdRef = useRef<string | null>(null);
   const clientRef = useRef<(() => RtmClient) | null>(null);
@@ -82,6 +84,17 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
       error instanceof Error ? error.message : defaultMessage;
     setError(errorMessage);
   }, []);
+
+  // Magic settings button activation
+  const handleMagicTap = useCallback(() => {
+    const newCount = settingsTapCount + 1;
+    setSettingsTapCount(newCount);
+
+    if (newCount >= 10) {
+      setShowSettingsButton(true);
+      setSettingsTapCount(0); // Reset counter
+    }
+  }, [settingsTapCount]);
 
   // Check if we're on the client side
   useEffect(() => {
@@ -603,14 +616,28 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
                   ))}
                 </div>
 
-                {/* Settings Button */}
+                {/* Magic Settings Area */}
                 <div className="mt-16 text-center">
-                  <button
-                    onClick={() => setShowSettings(true)}
-                    className="px-8 py-3 bg-white/5 backdrop-blur-sm border border-white/10 text-blue-200 rounded-xl hover:bg-white/10 hover:border-white/20 font-light transition-all duration-300"
+                  {/* Hidden Magic Tap Area */}
+                  <div
+                    onClick={handleMagicTap}
+                    className="w-full h-16 cursor-pointer"
+                    title="Tap 10 times to unlock settings"
                   >
-                    Settings
-                  </button>
+                    {/* Invisible tap area */}
+                  </div>
+
+                  {/* Settings Button - Only visible when unlocked */}
+                  {showSettingsButton && (
+                    <div className="mt-4">
+                      <button
+                        onClick={() => setShowSettings(true)}
+                        className="px-8 py-3 bg-white/5 backdrop-blur-sm border border-white/10 text-blue-200 rounded-xl hover:bg-white/10 hover:border-white/20 font-light transition-all duration-300"
+                      >
+                        Settings
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -636,12 +663,25 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
                 <p className="text-blue-100 mb-12 text-xl font-light tracking-wide">
                   No target tablets configured
                 </p>
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-2xl hover:bg-white/20 hover:border-white/30 font-light text-lg transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10"
+
+                {/* Hidden Magic Tap Area */}
+                <div
+                  onClick={handleMagicTap}
+                  className="w-full h-16 cursor-pointer mb-4"
+                  title="Tap 10 times to unlock settings"
                 >
-                  Configure Settings
-                </button>
+                  {/* Invisible tap area */}
+                </div>
+
+                {/* Settings Button - Only visible when unlocked */}
+                {showSettingsButton && (
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-2xl hover:bg-white/20 hover:border-white/30 font-light text-lg transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10"
+                  >
+                    Configure Settings
+                  </button>
+                )}
               </div>
             )}
         </div>
