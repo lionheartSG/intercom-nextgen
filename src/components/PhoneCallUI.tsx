@@ -11,6 +11,7 @@ interface SiteSettings {
   targetUserIds: string[];
   siteName: string;
   logo?: string; // Base64 encoded logo image
+  customButtonTexts?: { [key: string]: string }; // Custom button text for each target user
 }
 
 interface PhoneCallUIProps {
@@ -497,10 +498,10 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
                 </span>
               )}
             </div>
-            <h1 className="text-4xl font-light text-white mb-3 tracking-wide">
+            <h1 className="text-5xl font-semibold text-white mb-4 tracking-wide">
               Dragnet Intercom
             </h1>
-            <p className="text-blue-200 text-lg font-light">
+            <p className="text-blue-100 text-xl font-medium">
               Secure Communication
             </p>
           </div>
@@ -529,7 +530,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
             <div className="mb-8 p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl text-center">
               <div className="flex items-center justify-center mb-3">
                 <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse mr-3"></div>
-                <p className="text-lg font-light text-blue-100 tracking-wide">
+                <p className="text-xl font-semibold text-blue-50 tracking-wide">
                   {callState === "CALLING" && "Calling..."}
                   {callState === "RINGING" && "Incoming Call!"}
                   {callState === "CONNECTED" && "Call Connected"}
@@ -551,10 +552,10 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
                   <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
                 </svg>
               </div>
-              <p className="text-2xl font-light text-white mb-3 tracking-wide">
+              <p className="text-3xl font-semibold text-white mb-4 tracking-wide">
                 Incoming call from: {currentCall.from}
               </p>
-              <p className="text-blue-200 mb-8 font-light">
+              <p className="text-blue-100 mb-8 font-medium text-lg">
                 Channel: {currentCall.channel}
               </p>
               <div className="flex gap-6 justify-center">
@@ -586,7 +587,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
                   <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
                 </svg>
               </div>
-              <p className="text-2xl font-light text-white mb-8 tracking-wide">
+              <p className="text-3xl font-semibold text-white mb-8 tracking-wide">
                 Calling {currentTargetUserId}...
               </p>
               <button
@@ -603,7 +604,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
             targetUserIds &&
             targetUserIds.length > 0 && (
               <div className="space-y-8">
-                <h3 className="text-xl font-light text-blue-100 text-center mb-12 tracking-wide">
+                <h3 className="text-2xl font-semibold text-blue-50 text-center mb-12 tracking-wide">
                   SELECT TABLET TO CALL
                 </h3>
                 <div className="space-y-6">
@@ -612,19 +613,22 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
                       key={index}
                       onClick={() => handleInitiateCall(targetId)}
                       disabled={!channel || !isConnected}
-                      className="group w-full px-8 py-5 bg-white/5 backdrop-blur-sm border border-white/10 text-white rounded-2xl hover:bg-white/10 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed font-medium text-lg text-center transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10 disabled:hover:bg-white/5"
+                      className="group w-full px-8 py-6 bg-white/5 backdrop-blur-sm border border-white/10 text-white rounded-2xl hover:bg-white/10 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed font-semibold text-xl text-center transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10 disabled:hover:bg-white/5"
                     >
                       <div className="flex items-center justify-center space-x-4">
-                        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
+                        <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
                           <svg
-                            className="w-5 h-5"
+                            className="w-6 h-6"
                             fill="currentColor"
                             viewBox="0 0 24 24"
                           >
                             <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
                           </svg>
                         </div>
-                        <span className="tracking-wide">Call {targetId}</span>
+                        <span className="tracking-wide">
+                          {siteSettings?.customButtonTexts?.[targetId] ||
+                            `Call ${targetId}`}
+                        </span>
                       </div>
                     </button>
                   ))}

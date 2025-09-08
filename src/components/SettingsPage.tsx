@@ -8,6 +8,7 @@ interface SiteSettings {
   targetUserIds: string[];
   siteName: string;
   logo?: string; // Base64 encoded logo image
+  customButtonTexts?: { [key: string]: string }; // Custom button text for each target user
 }
 
 interface SettingsPageProps {
@@ -117,6 +118,16 @@ export default function SettingsPage({
     setSettings((prev) => ({
       ...prev,
       logo: undefined,
+    }));
+  };
+
+  const handleCustomButtonTextChange = (targetId: string, text: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      customButtonTexts: {
+        ...prev.customButtonTexts,
+        [targetId]: text,
+      },
     }));
   };
 
@@ -357,6 +368,38 @@ export default function SettingsPage({
               </p>
             </div>
           </div>
+
+          {/* Custom Button Text */}
+          {settings.targetUserIds && settings.targetUserIds.length > 0 && (
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <h3 className="font-medium text-yellow-900 mb-3">
+                Custom Button Text (Optional)
+              </h3>
+              <div className="space-y-3">
+                {settings.targetUserIds.map((targetId, index) => (
+                  <div key={index} className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Button text for "{targetId}"
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.customButtonTexts?.[targetId] || ""}
+                        onChange={(e) =>
+                          handleCustomButtonTextChange(targetId, e.target.value)
+                        }
+                        placeholder={`Call ${targetId}`}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-gray-900"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-600">
+                  Leave blank to use default "Call [Tablet ID]" text
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3">
