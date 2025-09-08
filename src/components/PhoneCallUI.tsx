@@ -14,6 +14,12 @@ interface SiteSettings {
   customButtonTexts?: { [key: string]: string }; // Custom button text for each target user
 }
 
+interface OnlineUser {
+  userId: string;
+  lastSeen: number;
+  isOnline: boolean;
+}
+
 interface PhoneCallUIProps {
   appId: string;
   rtcAppId: string;
@@ -55,6 +61,8 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [settingsTapCount, setSettingsTapCount] = useState(0);
   const [showSettingsButton, setShowSettingsButton] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [showCommandDashboard, setShowCommandDashboard] = useState(false);
 
   const currentCallIdRef = useRef<string | null>(null);
   const clientRef = useRef<(() => RtmClient) | null>(null);
@@ -80,6 +88,56 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     return callId;
   }, []);
 
+  // Heartbeat and presence tracking
+  const sendHeartbeat = useCallback(async () => {
+    if (!channelRef.current || !userId) return;
+
+    try {
+      const heartbeatMessage = {
+        type: "heartbeat",
+        userId: userId,
+        timestamp: Date.now(),
+        siteName: siteSettings?.siteName || userId,
+      };
+
+      await channelRef.current.sendMessage({
+        text: JSON.stringify(heartbeatMessage),
+      });
+    } catch (error) {
+      console.error("Failed to send heartbeat:", error);
+    }
+  }, [userId, siteSettings?.siteName]);
+
+  const updateUserPresence = useCallback(
+    (userId: string, isOnline: boolean = true) => {
+      setOnlineUsers((prev) => {
+        const existing = prev.find((user) => user.userId === userId);
+        if (existing) {
+          return prev.map((user) =>
+            user.userId === userId
+              ? { ...user, lastSeen: Date.now(), isOnline }
+              : user
+          );
+        } else {
+          return [...prev, { userId, lastSeen: Date.now(), isOnline }];
+        }
+      });
+    },
+    []
+  );
+
+  const cleanupOfflineUsers = useCallback(() => {
+    const now = Date.now();
+    const OFFLINE_THRESHOLD = 30000; // 30 seconds
+
+    setOnlineUsers((prev) =>
+      prev.map((user) => ({
+        ...user,
+        isOnline: user.isOnline && now - user.lastSeen < OFFLINE_THRESHOLD,
+      }))
+    );
+  }, []);
+
   const handleError = useCallback((error: unknown, defaultMessage: string) => {
     console.error(defaultMessage, error);
     const errorMessage =
@@ -102,6 +160,26 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Heartbeat timer
+  useEffect(() => {
+    if (!isConnected || !channel) return;
+
+    const heartbeatInterval = setInterval(() => {
+      sendHeartbeat();
+    }, 10000); // Send heartbeat every 10 seconds
+
+    return () => clearInterval(heartbeatInterval);
+  }, [isConnected, channel, sendHeartbeat]);
+
+  // Cleanup offline users timer
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      cleanupOfflineUsers();
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(cleanupInterval);
+  }, [cleanupOfflineUsers]);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -218,7 +296,16 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
         // Set up channel event listeners
         const handleChannelMessage = (message: any, memberId: string) => {
           try {
-            const signal: CallSignal = JSON.parse(message.text);
+            const data = JSON.parse(message.text);
+
+            // Handle heartbeat messages
+            if (data.type === "heartbeat") {
+              updateUserPresence(data.userId, true);
+              return;
+            }
+
+            // Handle call signals
+            const signal: CallSignal = data;
             handleCallSignal(signal, memberId);
           } catch (err) {
             handleError(err, "Failed to parse channel message");
@@ -446,6 +533,149 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     );
   }
 
+  // Show command dashboard
+  if (showCommandDashboard) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-4xl w-full bg-white rounded-lg shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Command Dashboard
+            </h1>
+            <button
+              onClick={() => setShowCommandDashboard(false)}
+              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+            >
+              Back
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Channel Status */}
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <h3 className="text-xl font-semibold text-blue-900 mb-4">
+                Channel Status
+              </h3>
+              <div className="space-y-2">
+                <p>
+                  <span className="font-medium">Channel:</span> {channel}
+                </p>
+                <p>
+                  <span className="font-medium">Connection:</span>
+                  <span
+                    className={`ml-2 px-2 py-1 rounded text-sm ${
+                      isConnected
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {isConnected ? "Connected" : "Disconnected"}
+                  </span>
+                </p>
+                <p>
+                  <span className="font-medium">Current User:</span> {userId}
+                </p>
+              </div>
+            </div>
+
+            {/* Online Tablets */}
+            <div className="bg-green-50 p-6 rounded-lg">
+              <h3 className="text-xl font-semibold text-green-900 mb-4">
+                Online Tablets (
+                {onlineUsers.filter((user) => user.isOnline).length})
+              </h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {onlineUsers.length === 0 ? (
+                  <p className="text-gray-600">No tablets detected yet...</p>
+                ) : (
+                  onlineUsers.map((user) => (
+                    <div
+                      key={user.userId}
+                      className={`flex items-center justify-between p-3 rounded-lg ${
+                        user.isOnline ? "bg-green-100" : "bg-gray-100"
+                      }`}
+                    >
+                      <div>
+                        <p className="font-medium">{user.userId}</p>
+                        <p className="text-sm text-gray-600">
+                          Last seen:{" "}
+                          {new Date(user.lastSeen).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <div
+                        className={`w-3 h-3 rounded-full ${
+                          user.isOnline ? "bg-green-500" : "bg-gray-400"
+                        }`}
+                      ></div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Target Tablets Configuration */}
+          {siteSettings?.targetUserIds &&
+            siteSettings.targetUserIds.length > 0 && (
+              <div className="mt-6 bg-yellow-50 p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-yellow-900 mb-4">
+                  Configured Target Tablets
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {siteSettings.targetUserIds.map((targetId) => {
+                    const isOnline =
+                      onlineUsers.find((user) => user.userId === targetId)
+                        ?.isOnline || false;
+                    const customText =
+                      siteSettings.customButtonTexts?.[targetId];
+                    return (
+                      <div
+                        key={targetId}
+                        className={`p-4 rounded-lg border-2 ${
+                          isOnline
+                            ? "border-green-300 bg-green-50"
+                            : "border-gray-300 bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium">{targetId}</h4>
+                          <div
+                            className={`w-3 h-3 rounded-full ${
+                              isOnline ? "bg-green-500" : "bg-gray-400"
+                            }`}
+                          ></div>
+                        </div>
+                        {customText && (
+                          <p className="text-sm text-gray-600">
+                            Button: "{customText}"
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          Status: {isOnline ? "Online" : "Offline"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+          {/* Refresh Info */}
+          <div className="mt-6 text-center text-sm text-gray-600">
+            <p>
+              Dashboard updates every 5 seconds. Tablets send heartbeat every 10
+              seconds.
+            </p>
+            <p>
+              Tablets are considered offline if no heartbeat received for 30
+              seconds.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show loading state while client-side hydration is happening
   if (!isClient || !rtmLoaded) {
     return (
@@ -647,12 +877,18 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
 
                   {/* Settings Button - Only visible when unlocked */}
                   {showSettingsButton && (
-                    <div className="mt-4">
+                    <div className="mt-4 flex gap-4 justify-center">
                       <button
                         onClick={() => setShowSettings(true)}
                         className="px-8 py-3 bg-white/5 backdrop-blur-sm border border-white/10 text-blue-200 rounded-xl hover:bg-white/10 hover:border-white/20 font-light transition-all duration-300"
                       >
                         Settings
+                      </button>
+                      <button
+                        onClick={() => setShowCommandDashboard(true)}
+                        className="px-8 py-3 bg-blue-500/20 backdrop-blur-sm border border-blue-500/30 text-blue-100 rounded-xl hover:bg-blue-500/30 hover:border-blue-500/50 font-light transition-all duration-300"
+                      >
+                        Command Dashboard
                       </button>
                     </div>
                   )}
