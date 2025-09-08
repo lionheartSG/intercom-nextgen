@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { handleImageUpload } from "../utils/imageUtils";
 
 interface SiteSettings {
   channel: string;
   targetUserIds: string[];
   siteName: string;
+  logo?: string; // Base64 encoded logo image
 }
 
 interface SettingsPageProps {
@@ -95,6 +97,29 @@ export default function SettingsPage({
     }));
   };
 
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleImageUpload(
+      event,
+      (compressedDataUrl) => {
+        setSettings((prev) => ({
+          ...prev,
+          logo: compressedDataUrl,
+        }));
+      },
+      (error) => {
+        alert(error);
+      },
+      { maxWidth: 200, quality: 0.8 }
+    );
+  };
+
+  const handleLogoRemove = () => {
+    setSettings((prev) => ({
+      ...prev,
+      logo: undefined,
+    }));
+  };
+
   const handleSave = () => {
     // Validate required fields
     if (
@@ -107,11 +132,36 @@ export default function SettingsPage({
       return;
     }
 
-    // Save to localStorage
-    localStorage.setItem("dragnet-site-settings", JSON.stringify(settings));
+    try {
+      // Save to localStorage
+      localStorage.setItem("dragnet-site-settings", JSON.stringify(settings));
 
-    // Notify parent component
-    onSettingsSave(settings);
+      // Notify parent component
+      onSettingsSave(settings);
+    } catch (error) {
+      console.error("localStorage error:", error);
+
+      // If localStorage is full, try saving without the logo
+      if (error instanceof DOMException && error.code === 22) {
+        const settingsWithoutLogo = { ...settings, logo: undefined };
+        try {
+          localStorage.setItem(
+            "dragnet-site-settings",
+            JSON.stringify(settingsWithoutLogo)
+          );
+          alert(
+            "Settings saved, but logo could not be stored due to storage limitations. Please try a smaller image or remove the logo."
+          );
+          onSettingsSave(settingsWithoutLogo);
+        } catch (retryError) {
+          alert(
+            "Unable to save settings. Please clear your browser data and try again."
+          );
+        }
+      } else {
+        alert("Failed to save settings. Please try again.");
+      }
+    }
   };
 
   return (
@@ -165,6 +215,64 @@ export default function SettingsPage({
                 <p className="text-xs text-gray-600 mt-1">
                   This will be used as your tablet ID. Change to your preferred
                   site name.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Logo Upload */}
+          <div className="bg-orange-50 p-4 rounded-lg">
+            <h3 className="font-medium text-orange-900 mb-3">Site Logo</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload Logo
+                </label>
+                <div className="flex items-center space-x-4">
+                  {/* Logo Preview */}
+                  <div className="w-16 h-16 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center overflow-hidden">
+                    {settings.logo ? (
+                      <img
+                        src={settings.logo}
+                        alt="Site Logo"
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="text-gray-400 text-xs text-center">
+                        No Logo
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload Button */}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <label
+                      htmlFor="logo-upload"
+                      className="block w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 cursor-pointer text-center text-sm"
+                    >
+                      Choose Logo
+                    </label>
+                    {settings.logo && (
+                      <button
+                        onClick={handleLogoRemove}
+                        className="mt-2 w-full px-4 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-xs"
+                      >
+                        Remove Logo
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  Upload a logo image (PNG, JPG, GIF). Images will be
+                  automatically compressed to 200x200px max and converted to PNG
+                  for best quality.
                 </p>
               </div>
             </div>

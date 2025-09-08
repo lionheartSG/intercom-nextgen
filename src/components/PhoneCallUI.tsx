@@ -10,6 +10,7 @@ interface SiteSettings {
   channel: string;
   targetUserIds: string[];
   siteName: string;
+  logo?: string; // Base64 encoded logo image
 }
 
 interface PhoneCallUIProps {
@@ -470,18 +471,31 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Half - Full Black Background */}
-      <div className="hidden lg:block lg:w-1/2 bg-black"></div>
+      {/* Left Half - Main Photo Background */}
+      <div
+        className="hidden lg:block lg:w-1/2 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url(/MainPhoto.jpg)",
+        }}
+      ></div>
 
       {/* Right Half - Centered Content */}
       <div className="w-full lg:w-1/2 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
           {/* Logo */}
           <div className="text-center mb-16">
-            <div className="w-24 h-24 mx-auto mb-6 bg-white/10 backdrop-blur-sm rounded-3xl flex items-center justify-center border border-white/20">
-              <span className="text-white font-light text-4xl tracking-wider">
-                D
-              </span>
+            <div className="w-24 h-24 mx-auto mb-6 bg-white/10 backdrop-blur-sm rounded-3xl flex items-center justify-center border border-white/20 overflow-hidden">
+              {siteSettings?.logo ? (
+                <img
+                  src={siteSettings.logo}
+                  alt="Site Logo"
+                  className="w-full h-full object-cover rounded-3xl"
+                />
+              ) : (
+                <span className="text-white font-light text-4xl tracking-wider">
+                  D
+                </span>
+              )}
             </div>
             <h1 className="text-4xl font-light text-white mb-3 tracking-wide">
               Dragnet Intercom
