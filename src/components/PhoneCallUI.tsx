@@ -5,6 +5,11 @@ import VideoCall from "./VideoCall";
 import SettingsPage from "./SettingsPage";
 import { generateRtmToken } from "../lib/agora-token";
 import type { RtmClient, RtmChannel } from "agora-rtm-react";
+import RingingPhoneSVG from "./svg/RingingPhone";
+import ErrorPhoneSVG from "./svg/ErrorPhone";
+import OutgoingPhoneSVG from "./svg/OutgoingPhone";
+import IdlePhoneSVG from "./svg/IdlePhone";
+import IdlePhone2SVG from "./svg/IdlePhone2";
 
 interface SiteSettings {
   channel: string;
@@ -739,17 +744,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl">
               <div className="flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <ErrorPhoneSVG />
                 {error}
               </div>
             </div>
@@ -774,13 +769,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
           {callState === "RINGING" && currentCall && (
             <div className="mb-8 p-8 bg-white/5 backdrop-blur-sm border border-white/20 rounded-3xl text-center">
               <div className="w-20 h-20 mx-auto mb-6 bg-green-500/20 rounded-full flex items-center justify-center border border-green-500/30">
-                <svg
-                  className="w-10 h-10 text-green-400"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
-                </svg>
+                <RingingPhoneSVG />
               </div>
               <p className="text-3xl font-semibold text-white mb-4 tracking-wide">
                 Incoming call from: {currentCall.from}
@@ -809,13 +798,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
           {callState === "CALLING" && (
             <div className="mb-8 p-8 bg-white/5 backdrop-blur-sm border border-white/20 rounded-3xl text-center">
               <div className="w-20 h-20 mx-auto mb-6 bg-blue-500/20 rounded-full flex items-center justify-center animate-pulse border border-blue-500/30">
-                <svg
-                  className="w-10 h-10 text-blue-400"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
-                </svg>
+                <OutgoingPhoneSVG />
               </div>
               <p className="text-3xl font-semibold text-white mb-8 tracking-wide">
                 Calling {currentTargetUserId}...
@@ -847,13 +830,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
                     >
                       <div className="flex items-center justify-center space-x-4">
                         <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
-                          <svg
-                            className="w-6 h-6"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
-                          </svg>
+                          <IdlePhoneSVG />
                         </div>
                         <span className="tracking-wide">
                           {siteSettings?.customButtonTexts?.[targetId] ||
@@ -900,19 +877,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
             (!targetUserIds || targetUserIds.length === 0) && (
               <div className="text-center py-16">
                 <div className="w-20 h-20 mx-auto mb-8 bg-white/5 backdrop-blur-sm rounded-3xl flex items-center justify-center border border-white/10">
-                  <svg
-                    className="w-10 h-10 text-blue-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
-                    />
-                  </svg>
+                  <IdlePhone2SVG />
                 </div>
                 <p className="text-blue-100 mb-12 text-xl font-light tracking-wide">
                   No target tablets configured
