@@ -12,6 +12,7 @@ import ErrorPhoneSVG from "./svg/ErrorPhone";
 import OutgoingPhoneSVG from "./svg/OutgoingPhone";
 import IdlePhoneSVG from "./svg/IdlePhone";
 import IdlePhone2SVG from "./svg/IdlePhone2";
+import { useRingtone } from "../hooks/useRingtone";
 
 import type { SiteSettings } from "@/types/command";
 
@@ -58,6 +59,9 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
   const [showSettingsButton, setShowSettingsButton] = useState(false);
   const router = useRouter();
 
+  // Ringtone functionality
+  const { playRingtone, stopRingtone, initializeAudio } = useRingtone();
+
   const currentCallIdRef = useRef<string | null>(null);
   const clientRef = useRef<(() => RtmClient) | null>(null);
   const channelRef = useRef<RtmChannel | null>(null);
@@ -72,7 +76,8 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     setShowVideoCall(false);
     setCurrentTargetUserId("");
     setError(null);
-  }, []);
+    stopRingtone(); // Stop ringtone when resetting call state
+  }, [stopRingtone]);
 
   const generateCallId = useCallback((): string => {
     const callId = `call_${Date.now()}_${Math.random()
@@ -125,6 +130,20 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Initialize audio when component mounts
+  useEffect(() => {
+    if (isClient) {
+      initializeAudio();
+    }
+  }, [isClient, initializeAudio]);
+
+  // Cleanup ringtone when component unmounts
+  useEffect(() => {
+    return () => {
+      stopRingtone();
+    };
+  }, [stopRingtone]);
 
   // Heartbeat timer
   useEffect(() => {
@@ -215,23 +234,27 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
         case "INCOMING_CALL":
           setCurrentCall(signal);
           setCallState("RINGING");
+          playRingtone(); // Start playing ringtone
           break;
         case "CALL_ACCEPTED":
           setCurrentCall(signal);
           setCallState("CONNECTED");
           setShowVideoCall(true);
+          stopRingtone(); // Stop ringtone when call is accepted
           break;
         case "CALL_DECLINED":
           setCurrentCall(null);
           setCallState("IDLE");
           setError("Call was declined");
+          stopRingtone(); // Stop ringtone when call is declined
           break;
         case "CALL_ENDED":
           resetCallState();
+          stopRingtone(); // Stop ringtone when call ends
           break;
       }
     },
-    [resetCallState]
+    [resetCallState, playRingtone, stopRingtone]
   );
 
   const handleJoinChannel = useCallback(
@@ -424,6 +447,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
 
     try {
       setError(null);
+      stopRingtone(); // Stop ringtone when accepting call
       await sendCallSignal(
         currentCall.from,
         currentCall.channel,
@@ -434,13 +458,14 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     } catch (err) {
       handleError(err, "Failed to accept call");
     }
-  }, [currentCall, sendCallSignal, handleError]);
+  }, [currentCall, sendCallSignal, handleError, stopRingtone]);
 
   const handleDeclineCall = useCallback(async () => {
     if (!currentCall) return;
 
     try {
       setError(null);
+      stopRingtone(); // Stop ringtone when declining call
       await sendCallSignal(
         currentCall.from,
         currentCall.channel,
@@ -451,13 +476,14 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     } catch (err) {
       handleError(err, "Failed to decline call");
     }
-  }, [currentCall, sendCallSignal, handleError]);
+  }, [currentCall, sendCallSignal, handleError, stopRingtone]);
 
   const handleEndCall = useCallback(async () => {
     try {
       // If already idle, don't double-cleanup
       if (callState === "IDLE") return;
 
+      stopRingtone(); // Stop ringtone when ending call
       const target = currentCall?.from ?? currentTargetUserId;
       if (target) {
         await sendCallSignal(target, channel, "CALL_ENDED");
@@ -476,6 +502,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     sendCallSignal,
     resetCallState,
     handleError,
+    stopRingtone,
   ]);
 
   // Show settings page if no settings configured
