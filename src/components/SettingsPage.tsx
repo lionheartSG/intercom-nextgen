@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { handleImageUpload } from "../utils/imageUtils";
+import { ArrowLeft, X } from "lucide-react";
 
 interface SiteSettings {
   channel: string;
@@ -186,19 +187,7 @@ export default function SettingsPage({
             onClick={onBack}
             className="mr-4 p-2 hover:bg-gray-100 rounded-lg"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ArrowLeft className="w-6 h-6" />
           </button>
           <h1 className="text-2xl font-bold text-gray-900">
             Site Configuration
@@ -339,19 +328,7 @@ export default function SettingsPage({
                       className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                       title="Remove"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 ))}

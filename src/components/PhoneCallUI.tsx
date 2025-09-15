@@ -7,11 +7,7 @@ import VideoCall from "./VideoCall";
 import SettingsPage from "./SettingsPage";
 import { generateRtmToken } from "../lib/agora-token";
 import type { RtmClient, RtmChannel } from "agora-rtm-react";
-import RingingPhoneSVG from "./svg/RingingPhone";
-import ErrorPhoneSVG from "./svg/ErrorPhone";
-import OutgoingPhoneSVG from "./svg/OutgoingPhone";
-import IdlePhoneSVG from "./svg/IdlePhone";
-import IdlePhone2SVG from "./svg/IdlePhone2";
+import { Phone, XCircle, Settings } from "lucide-react";
 import { useRingtone } from "../hooks/useRingtone";
 
 import type { SiteSettings } from "@/types/command";
@@ -107,7 +103,6 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     }
   }, [userId, siteSettings?.siteName]);
 
-
   const handleError = useCallback((error: unknown, defaultMessage: string) => {
     console.error(defaultMessage, error);
     const errorMessage =
@@ -155,7 +150,6 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
 
     return () => clearInterval(heartbeatInterval);
   }, [isConnected, channel, sendHeartbeat]);
-
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -516,7 +510,6 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     );
   }
 
-
   // Show loading state while client-side hydration is happening
   if (!isClient || !rtmLoaded) {
     return (
@@ -582,7 +575,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl">
               <div className="flex items-center">
-                <ErrorPhoneSVG />
+                <XCircle className="w-5 h-5 mr-2" />
                 {error}
               </div>
             </div>
@@ -607,7 +600,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
           {callState === "RINGING" && currentCall && (
             <div className="mb-8 p-8 bg-white/5 backdrop-blur-sm border border-white/20 rounded-3xl text-center">
               <div className="w-20 h-20 mx-auto mb-6 bg-green-500/20 rounded-full flex items-center justify-center border border-green-500/30">
-                <RingingPhoneSVG />
+                <Phone className="w-10 h-10 text-green-400" />
               </div>
               <p className="text-3xl font-semibold text-white mb-4 tracking-wide">
                 Incoming call from: {currentCall.from}
@@ -636,7 +629,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
           {callState === "CALLING" && (
             <div className="mb-8 p-8 bg-white/5 backdrop-blur-sm border border-white/20 rounded-3xl text-center">
               <div className="w-20 h-20 mx-auto mb-6 bg-blue-500/20 rounded-full flex items-center justify-center animate-pulse border border-blue-500/30">
-                <OutgoingPhoneSVG />
+                <Phone className="w-10 h-10 text-blue-400" />
               </div>
               <p className="text-3xl font-semibold text-white mb-8 tracking-wide">
                 Calling {currentTargetUserId}...
@@ -668,7 +661,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
                     >
                       <div className="flex items-center justify-center space-x-4">
                         <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors duration-300">
-                          <IdlePhoneSVG />
+                          <Phone className="w-6 h-6" />
                         </div>
                         <span className="tracking-wide">
                           {siteSettings?.customButtonTexts?.[targetId] ||
@@ -715,7 +708,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
             (!targetUserIds || targetUserIds.length === 0) && (
               <div className="text-center py-16">
                 <div className="w-20 h-20 mx-auto mb-8 bg-white/5 backdrop-blur-sm rounded-3xl flex items-center justify-center border border-white/10">
-                  <IdlePhone2SVG />
+                  <Settings className="w-10 h-10 text-blue-200" />
                 </div>
                 <p className="text-blue-100 mb-12 text-xl font-light tracking-wide">
                   No target tablets configured
