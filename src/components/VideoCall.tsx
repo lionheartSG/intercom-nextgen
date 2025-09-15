@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { generateAgoraToken } from "../lib/agora-token";
 import VideoCallUI from "./VideoCallUI";
+import { useTokenRefresh } from "../hooks/useTokenRefresh";
 import type {
   ILocalVideoTrack,
   ILocalAudioTrack,
@@ -45,13 +46,13 @@ export default function VideoCall({
   };
 
   // Helper function to configure mobile audio routing
-  const configureMobileAudio = (audioElement: HTMLAudioElement) => {
+  const configureMobileAudio = useCallback((audioElement: HTMLAudioElement) => {
     if (isMobileDevice()) {
       audioElement.setAttribute("playsinline", "true");
       audioElement.setAttribute("webkit-playsinline", "true");
       audioElement.volume = 0.8; // Lower volume to prevent feedback
     }
-  };
+  }, []);
 
   const clientRef = useRef<any>(null);
   const localVideoTrackRef = useRef<ILocalVideoTrack | null>(null);
@@ -97,22 +98,6 @@ export default function VideoCall({
       });
     }
   }, [isClient, agoraLoaded, clientReady, isJoined, channel, appId]);
-
-  // Token refresh mechanism
-  useEffect(() => {
-    if (!isJoined || !tokenExpiresAt) return;
-
-    const checkTokenExpiry = () => {
-      if (isTokenExpired()) {
-        generateToken().catch(console.error);
-      }
-    };
-
-    // Check every minute
-    const interval = setInterval(checkTokenExpiry, 60000);
-
-    return () => clearInterval(interval);
-  }, [isJoined, tokenExpiresAt]);
 
   // Cleanup effect - stop camera when component unmounts
   useEffect(() => {
@@ -200,35 +185,43 @@ export default function VideoCall({
   }, [isClient, agoraLoaded]);
 
   // Function to generate a new token
-  const generateToken = async (uid?: number) => {
-    try {
-      const tokenUid = uid || 0; // Use provided UID or default to 0
+  const generateToken = useCallback(
+    async (uid?: number) => {
+      try {
+        const tokenUid = uid || 0; // Use provided UID or default to 0
 
-      const tokenResponse = await generateAgoraToken({
-        channel,
-        uid: tokenUid,
-        expirationTimeInSeconds: 3600, // 1 hour
-      });
+        const tokenResponse = await generateAgoraToken({
+          channel,
+          uid: tokenUid,
+          expirationTimeInSeconds: 3600, // 1 hour
+        });
 
-      setCurrentToken(tokenResponse.token);
-      setTokenExpiresAt(tokenResponse.expiresAt);
+        setCurrentToken(tokenResponse.token);
+        setTokenExpiresAt(tokenResponse.expiresAt);
 
-      return tokenResponse.token;
-    } catch (err) {
-      console.error("Error generating token:", err);
-      setError("Failed to generate authentication token");
-      throw err;
-    }
-  };
+        return tokenResponse.token;
+      } catch (err) {
+        console.error("Error generating token:", err);
+        setError("Failed to generate authentication token");
+        throw err;
+      }
+    },
+    [channel]
+  );
 
-  // Function to check if token is expired or about to expire
-  const isTokenExpired = () => {
-    if (!tokenExpiresAt) return true;
-    const now = Math.floor(Date.now() / 1000);
-    return tokenExpiresAt - now < 300; // Consider expired if less than 5 minutes left
-  };
+  // Function to generate token for refresh (no UID parameter)
+  const generateTokenForRefresh = useCallback(async () => {
+    await generateToken();
+  }, [generateToken]);
 
-  const joinChannel = async () => {
+  // Use token refresh hook
+  const { isTokenExpired } = useTokenRefresh({
+    isJoined,
+    tokenExpiresAt,
+    generateToken: generateTokenForRefresh,
+  });
+
+  const joinChannel = useCallback(async () => {
     if (
       !clientRef.current ||
       !appId ||
@@ -333,23 +326,35 @@ export default function VideoCall({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    appId,
+    channel,
+    token,
+    currentToken,
+    generateToken,
+    isJoined,
+    agoraRTCRef,
+    clientRef,
+    currentUid,
+    isTokenExpired,
+    configureMobileAudio,
+  ]);
 
-  const toggleMute = async () => {
+  const toggleMute = useCallback(async () => {
     if (localAudioTrackRef.current) {
       const newState = !localAudioTrackRef.current.enabled;
       await localAudioTrackRef.current.setEnabled(newState);
       setIsMuted((prev) => !prev);
     }
-  };
+  }, []);
 
-  const toggleVideo = async () => {
+  const toggleVideo = useCallback(async () => {
     if (localVideoTrackRef.current) {
       const newState = !localVideoTrackRef.current.enabled;
       await localVideoTrackRef.current.setEnabled(newState);
       setIsVideoOff((prev) => !prev);
     }
-  };
+  }, []);
 
   return (
     <VideoCallUI
