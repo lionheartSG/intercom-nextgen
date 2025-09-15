@@ -13,10 +13,16 @@ import type {
 interface VideoCallProps {
   appId: string;
   token?: string; // Optional - will generate dynamically if not provided
+  channel: string;
   endCall: () => void;
 }
 
-export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
+export default function VideoCall({
+  appId,
+  token,
+  channel,
+  endCall,
+}: VideoCallProps) {
   const [isJoined, setIsJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,8 +33,6 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   const [currentToken, setCurrentToken] = useState<string | null>(null);
   const [tokenExpiresAt, setTokenExpiresAt] = useState<number | null>(null);
   const [currentUid, setCurrentUid] = useState<number>(0);
-  const [channel, setChannel] = useState<string>("");
-  const [channelInput, setChannelInput] = useState<string>("");
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isVideoOff, setIsVideoOff] = useState<boolean>(false);
 
@@ -61,18 +65,6 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
   // Check if we're on the client side and load Agora SDK
   useEffect(() => {
     setIsClient(true);
-
-    // Load channel from localStorage
-    const savedChannel = localStorage.getItem("agora-channel");
-    if (savedChannel) {
-      setChannel(savedChannel);
-      setChannelInput(savedChannel);
-    } else {
-      // Default channel if none saved
-      const defaultChannel = "dragnet-channel";
-      setChannel(defaultChannel);
-      setChannelInput(defaultChannel);
-    }
 
     // Dynamically import Agora SDK
     const loadAgora = async () => {
@@ -237,48 +229,6 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
     if (!tokenExpiresAt) return true;
     const now = Math.floor(Date.now() / 1000);
     return tokenExpiresAt - now < 300; // Consider expired if less than 5 minutes left
-  };
-
-  // Function to handle channel change
-  const handleChannelChange = (newChannel: string) => {
-    setChannelInput(newChannel);
-  };
-
-  // Function to set channel and save to localStorage
-  const setChannelAndSave = (newChannel: string) => {
-    // Validate channel name
-    if (!newChannel.trim()) {
-      setError("Channel name cannot be empty");
-      return false;
-    }
-
-    // Agora channel name validation (alphanumeric, hyphens, underscores only)
-    const channelRegex = /^[a-zA-Z0-9_-]+$/;
-    if (!channelRegex.test(newChannel)) {
-      setError(
-        "Channel name can only contain letters, numbers, hyphens, and underscores"
-      );
-      return false;
-    }
-
-    if (newChannel.length > 64) {
-      setError("Channel name must be 64 characters or less");
-      return false;
-    }
-
-    setChannel(newChannel);
-    localStorage.setItem("agora-channel", newChannel);
-    setError(null);
-    return true;
-  };
-
-  // Function to apply channel change
-  const applyChannelChange = () => {
-    if (setChannelAndSave(channelInput)) {
-      // Clear current token since channel changed
-      setCurrentToken(null);
-      setTokenExpiresAt(null);
-    }
   };
 
   const joinChannel = async () => {

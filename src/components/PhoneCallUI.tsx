@@ -82,7 +82,11 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     return (
       <div className="min-h-screen bg-black relative">
         {/* Video Call Component */}
-        <VideoCall appId={rtcAppId} endCall={handleEndActiveCall} />
+        <VideoCall
+          appId={rtcAppId}
+          channel={channel}
+          endCall={handleEndActiveCall}
+        />
       </div>
     );
   }
