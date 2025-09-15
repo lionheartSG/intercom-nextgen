@@ -10,10 +10,9 @@ import { useAgoraCall } from "../hooks/useAgoraCall";
 
 interface PhoneCallUIProps {
   appId: string;
-  rtcAppId: string;
 }
 
-export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
+export default function PhoneCallUI({ appId }: PhoneCallUIProps) {
   const [settingsTapCount, setSettingsTapCount] = useState(0);
   const [showSettingsButton, setShowSettingsButton] = useState(false);
   const router = useRouter();
@@ -39,7 +38,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     handleSettingsSave,
     handleSettingsBack,
     setShowSettings,
-  } = useAgoraCall({ appId, rtcAppId });
+  } = useAgoraCall({ appId });
 
   // Magic settings button activation (UI-only logic)
   const handleMagicTap = useCallback(() => {
@@ -83,9 +82,9 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
       <div className="min-h-screen bg-black relative">
         {/* Video Call Component */}
         <VideoCall
-          appId={rtcAppId}
+          appId={appId}
           channel={channel}
-          endCall={handleEndActiveCall}
+          handleEndActiveCall={handleEndActiveCall}
         />
       </div>
     );

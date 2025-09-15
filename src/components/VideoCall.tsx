@@ -14,14 +14,14 @@ interface VideoCallProps {
   appId: string;
   token?: string; // Optional - will generate dynamically if not provided
   channel: string;
-  endCall: () => void;
+  handleEndActiveCall: () => void;
 }
 
 export default function VideoCall({
   appId,
   token,
   channel,
-  endCall,
+  handleEndActiveCall,
 }: VideoCallProps) {
   const [isJoined, setIsJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -148,12 +148,9 @@ export default function VideoCall({
     setClientReady(true);
 
     // Listen to connection state changes
-    clientRef.current.on(
-      "connection-state-change",
-      (curState: string, revState: string) => {
-        setConnectionState(curState);
-      }
-    );
+    clientRef.current.on("connection-state-change", (curState: string) => {
+      setConnectionState(curState);
+    });
 
     // Listen to user joined
     clientRef.current.on(
@@ -368,7 +365,7 @@ export default function VideoCall({
       isVideoOff={isVideoOff}
       onToggleMute={toggleMute}
       onToggleVideo={toggleVideo}
-      onEndCall={endCall}
+      onEndCall={handleEndActiveCall}
     />
   );
 }

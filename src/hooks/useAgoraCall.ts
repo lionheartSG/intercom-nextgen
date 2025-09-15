@@ -30,10 +30,9 @@ interface RtmError {
 
 interface UseAgoraCallProps {
   appId: string;
-  rtcAppId: string;
 }
 
-export function useAgoraCall({ appId, rtcAppId }: UseAgoraCallProps) {
+export function useAgoraCall({ appId }: UseAgoraCallProps) {
   // State
   const [callState, setCallState] = useState<CallState>("IDLE");
   const [currentCall, setCurrentCall] = useState<CallSignal | null>(null);
