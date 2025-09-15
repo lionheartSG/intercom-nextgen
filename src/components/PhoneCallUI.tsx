@@ -35,7 +35,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     handleInitiateCall,
     handleAcceptCall,
     handleDeclineCall,
-    handleEndCall,
+    handleEndActiveCall,
     handleSettingsSave,
     handleSettingsBack,
     setShowSettings,
@@ -82,7 +82,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
     return (
       <div className="min-h-screen bg-black relative">
         {/* Video Call Component */}
-        <VideoCall appId={rtcAppId} endCall={handleEndCall} />
+        <VideoCall appId={rtcAppId} endCall={handleEndActiveCall} />
       </div>
     );
   }
@@ -188,7 +188,7 @@ export default function PhoneCallUI({ appId, rtcAppId }: PhoneCallUIProps) {
                 Calling {currentTargetUserId}...
               </p>
               <button
-                onClick={handleEndCall}
+                onClick={handleEndActiveCall}
                 className="px-10 py-4 bg-red-500/20 backdrop-blur-sm border border-red-500/30 text-red-300 rounded-2xl hover:bg-red-500/30 hover:border-red-500/50 font-light text-lg transition-all duration-300"
               >
                 Cancel

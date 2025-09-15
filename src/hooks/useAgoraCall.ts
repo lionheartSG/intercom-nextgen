@@ -310,7 +310,7 @@ export function useAgoraCall({ appId, rtcAppId }: UseAgoraCallProps) {
     }
   }, [currentCall, sendCallSignal, handleError, stopRingtone]);
 
-  const handleEndCall = useCallback(async () => {
+  const handleEndActiveCall = useCallback(async () => {
     try {
       if (callState === "IDLE") return;
 
@@ -489,7 +489,7 @@ export function useAgoraCall({ appId, rtcAppId }: UseAgoraCallProps) {
     handleInitiateCall,
     handleAcceptCall,
     handleDeclineCall,
-    handleEndCall,
+    handleEndActiveCall,
     handleSettingsSave,
     handleSettingsBack,
     setShowSettings,
