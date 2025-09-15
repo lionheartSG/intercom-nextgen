@@ -123,7 +123,7 @@ export default function VideoCallUI({
             ></div>
 
             {/* Connection State Display */}
-            {isJoined && (
+            {(isJoined || connectionState !== "DISCONNECTED") && (
               <div className="absolute top-4 left-4 z-40">
                 <div
                   className={`px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm border shadow-lg ${

@@ -131,12 +131,13 @@ export default function VideoCall({
     };
 
     clientRef.current = agoraRTCRef.current.createClient(config);
-    setClientReady(true);
 
-    // Listen to connection state changes
+    // Listen to connection state changes IMMEDIATELY after client creation
     clientRef.current.on("connection-state-change", (curState: string) => {
       setConnectionState(curState);
     });
+
+    setClientReady(true);
 
     // Listen to user joined
     clientRef.current.on(
