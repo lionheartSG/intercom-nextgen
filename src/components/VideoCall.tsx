@@ -27,7 +27,8 @@ export default function VideoCall({
   const [isJoined, setIsJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [, setConnectionState] = useState<string>("DISCONNECTED");
+  const [connectionState, setConnectionState] =
+    useState<string>("DISCONNECTED");
   const [isClient, setIsClient] = useState(false);
   const [agoraLoaded, setAgoraLoaded] = useState(false);
   const [clientReady, setClientReady] = useState(false);
@@ -363,6 +364,7 @@ export default function VideoCall({
       isJoined={isJoined}
       isLoading={isLoading}
       error={error}
+      connectionState={connectionState}
       localVideoElementRef={localVideoElementRef}
       remoteVideoElementRef={remoteVideoElementRef}
       remoteAudioElementRef={remoteAudioElementRef}

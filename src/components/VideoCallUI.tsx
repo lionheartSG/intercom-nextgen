@@ -11,6 +11,7 @@ interface VideoCallUIProps {
   isJoined: boolean;
   isLoading: boolean;
   error: string | null;
+  connectionState: string;
 
   // Video elements refs
   localVideoElementRef: React.RefObject<HTMLDivElement | null>;
@@ -33,6 +34,7 @@ export default function VideoCallUI({
   isJoined,
   isLoading,
   error,
+  connectionState,
   localVideoElementRef,
   remoteVideoElementRef,
   remoteAudioElementRef,
@@ -42,6 +44,48 @@ export default function VideoCallUI({
   onToggleVideo,
   onEndCall,
 }: VideoCallUIProps) {
+  // Helper function to format connection state for display
+  const getConnectionStateDisplay = (state: string) => {
+    switch (state) {
+      case "CONNECTED":
+        return {
+          text: "Connected",
+          color: "text-green-300",
+          bgColor: "bg-green-600/80",
+        };
+      case "CONNECTING":
+        return {
+          text: "Connecting...",
+          color: "text-yellow-300",
+          bgColor: "bg-yellow-600/80",
+        };
+      case "RECONNECTING":
+        return {
+          text: "Reconnecting...",
+          color: "text-orange-300",
+          bgColor: "bg-orange-600/80",
+        };
+      case "DISCONNECTED":
+        return {
+          text: "Disconnected",
+          color: "text-red-300",
+          bgColor: "bg-red-600/80",
+        };
+      case "DISCONNECTING":
+        return {
+          text: "Disconnecting...",
+          color: "text-gray-300",
+          bgColor: "bg-gray-600/80",
+        };
+      default:
+        return {
+          text: state,
+          color: "text-gray-300",
+          bgColor: "bg-gray-600/80",
+        };
+    }
+  };
+
   // Show loading state while client-side hydration is happening
   if (!isClient || !agoraLoaded) {
     return (
@@ -77,6 +121,21 @@ export default function VideoCallUI({
               ref={remoteVideoElementRef}
               className="w-full h-full bg-gray-900"
             ></div>
+
+            {/* Connection State Display */}
+            {isJoined && (
+              <div className="absolute top-4 left-4 z-40">
+                <div
+                  className={`px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm border shadow-lg ${
+                    getConnectionStateDisplay(connectionState).bgColor
+                  } ${
+                    getConnectionStateDisplay(connectionState).color
+                  } border-current/30`}
+                >
+                  {getConnectionStateDisplay(connectionState).text}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Remote Audio - Hidden audio element for remote audio */}
