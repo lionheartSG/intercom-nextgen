@@ -141,7 +141,7 @@ export default function VideoCall({ appId, token, endCall }: VideoCallProps) {
         clientRef.current.leave().catch(console.error);
       }
     };
-  }, []);
+  }, [isJoined, isClient]);
 
   // Initialize Agora client
   useEffect(() => {
